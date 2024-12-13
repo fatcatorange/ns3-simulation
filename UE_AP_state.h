@@ -37,10 +37,13 @@ void print_data_rate_matrix();
 extern std::vector<AP_node*> AP_node_list;
 extern std::vector<UE_node*> UE_node_list;
 
-extern std::vector<std::vector<double>> AP_UE_Channel_gain_matrix;
+extern std::vector<std::vector<double>> Channel_gain_matrix;
 extern std::vector<std::vector<int>> pairing_matrix;
 extern std::vector<std::vector<double>> data_rate_matrix;
 extern std::vector<double> power_allocation_matrix;
+extern std::vector<int> link_selection_matrix;
+
+
 
 
 #endif // UE_AP_STATE_H_INCLUDED

@@ -43,3 +43,6 @@ double angle_of_LOS_arrival = 45;
 double fill_factor = 0.75;
 double thermal_voltage = 0.025;
 
+int maximum_iteration = 100;
+int relay_user = 0;
+

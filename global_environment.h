@@ -60,5 +60,8 @@ extern double angle_of_LOS_arrival;
 extern double fill_factor;
 extern double thermal_voltage;
 
+extern int maximum_iteration;
+extern int relay_user;
+
 
 #endif // GLOBAL_ENVIRONMENT_H_INCLUDED

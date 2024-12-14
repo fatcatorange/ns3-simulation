@@ -38,14 +38,15 @@ void init_ref1_algo() {
 
 
 double calculate_lambda(std::vector<std::pair<int, int>> &tmp_pairing) {
-    double left = 1e-6;
-    double right = total_power;
-    double convergens = total_power * 0.05;
-    double lambda = 1;
+    long double left = 1e-6;
+    long double right = 1e9;
+    long double convergens = total_power * 0.01;
+    long double lambda = 1;
 
-    while(left <= right) {
-        double now_lambda = (left + right) / 2;
-        double now_power = 0;
+    while(left <= right ) {
+        std::cout<<left<<" "<<right<<std::endl;
+        long double now_lambda = (left + right) / 2;
+        long double now_power = 0;
         for (int i = 0;i < tmp_pairing.size();i++) {
             int now_strong_user = tmp_pairing[i].first;
             int now_weak_user = tmp_pairing[i].second;
@@ -68,16 +69,16 @@ double calculate_lambda(std::vector<std::pair<int, int>> &tmp_pairing) {
 
             now_power+=std::max(0.0, term1 - term2);
         }
-
+        //std::cout<<total_power<<" "<<now_power<<std::endl;
         if (now_power <= total_power) {
             lambda = now_lambda;
             if (total_power - now_power <= convergens) {
                 break;
             }
-            left = now_lambda ;
+            right = now_lambda ;
         }
         else {
-            right = now_lambda;
+            left = now_lambda;
         }
 
     }
@@ -85,15 +86,51 @@ double calculate_lambda(std::vector<std::pair<int, int>> &tmp_pairing) {
     return lambda;
 }
 
-void pair_power_allocation(int user1, int user2) {
-    if (Channel_gain_matrix[user1] > Channel_gain_matrix[user2]) { //ue1 is strong user
-        double pair_total_power = 1;
-
+void pair_power_allocation(int strong_user, int weak_user, double lambda) {
+    double term1 = 1;
+    if (link_selection_matrix[weak_user] == 0) { //direct link
+        term1 = weight_matrix[weak_user] * VLC_AP_Bandwidth / (2 * pairing_count * lambda);
     }
+    else {
+        term1 = weight_matrix[strong_user] * VLC_AP_Bandwidth / (2 * pairing_count * lambda);
+    }
+    double noise = VLC_AP_Bandwidth / (2 * pairing_count) * Nl * pow(10, 6);
+    double c = 1 / (2 * M_PI);
+    double psi_j = c;
+    psi_j *= pow(VLC_optical_to_electric_factor, 2);
+    psi_j *= pow(VLC_electric_to_optical_factor, 2);
+    psi_j *= pow(Channel_gain_matrix[strong_user][0], 2);
+    psi_j /= noise;
+
+    double term2 = 1 / psi_j;
+    double pair_total_power = std::max(0.0, term1 - term2);
+    //std::cout<<"pair power:"<<pair_total_power<<std::endl;
+    link_selection_matrix[weak_user] = 1;
+
+    if (link_selection_matrix[weak_user] == 1) { //case 1, formula (20)
+        double ro1 = -1 + sqrt(1 + (pair_total_power * psi_j));
+        ro1 /= psi_j;
+
+        double A = 2 * calculate_RF_data_rate(Channel_gain_matrix[strong_user][0], UE_node_list[strong_user]->node, UE_node_list[weak_user]->node) * pairing_count / (VLC_AP_Bandwidth * 1e6);
+        A = pow(2, A);
+
+        double ro2 = pair_total_power * psi_j + 1 - A;
+        //std::cout<<"ro:"<<ro1<<" "<<ro2<<std::endl;
+        power_allocation_matrix[strong_user] = std::min(ro1, ro2);
+        power_allocation_matrix[weak_user] = pair_total_power - power_allocation_matrix[strong_user];
+    }
+
+
+
+    //std::cout<<total_power<<std::endl;
 }
 
 void ref1_power_allocation(std::vector<std::pair<int, int>> &tmp_pairing) {
-
+    double lambda = calculate_lambda(tmp_pairing);
+    for(int i = 0;i < tmp_pairing.size();i++) {
+        std::cout<<"st:"<<tmp_pairing[i].first<<" "<<tmp_pairing[i].second<<std::endl;
+        pair_power_allocation(tmp_pairing[i].first, tmp_pairing[i].second, lambda);
+    }
 }
 
 void check_pairing(std::vector<std::pair<int, int>> &tmp_pairing) {
@@ -122,16 +159,17 @@ void ref1_algo() {
     init_ref1_algo();
     int round = 0;
 
-    while(round <= maximum_iteration) {
+    //while(round <= maximum_iteration) {
         std::vector<std::pair<int, int>> tmp_pairing; // [strong user, weak user]
-        //
-        //ref1_power_allocation();
+        check_pairing(tmp_pairing);
+        ref1_power_allocation(tmp_pairing);
         //ref1_user_pairing();
         //ref1_link_selection();
         //clear_pairing_matrix();
         //update_weight();
         round++;
-    }
+
+    //}
 
 
 }

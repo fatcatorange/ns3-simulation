@@ -11,6 +11,7 @@
 #include <boost/math/distributions/rayleigh.hpp>
 #include "Channel.h"
 #include "global_environment.h"
+#include "Ref1_algo.h"
 
 std::vector<AP_node*> AP_node_list;
 std::vector<UE_node*> UE_node_list;
@@ -19,7 +20,7 @@ std::vector<std::vector<double>> Channel_gain_matrix(UE,std::vector<double>(VLC_
 std::vector<std::vector<int>> pairing_matrix(UE, std::vector<int>(UE)); // if i, j == 1 => i and j are pairing
 std::vector<std::vector<double>> data_rate_matrix(UE,std::vector<double>(VLC_AP));
 std::vector<double> power_allocation_matrix(UE, 0); // power for every users
-std::vector<int> link_selection_matrix(UE, 1); // 0 = direct link 1 = relay link
+std::vector<int> link_selection_matrix(UE, 0); // 0 = direct link 1 = relay link
 
 
 void initVLC_AP(NodeContainer &VLC_AP_nodes, std::vector<AP_node*> &AP_list)
@@ -108,11 +109,6 @@ void basic_init() {
     printUE(UE_node_list);
 
 
-    pairing_matrix[0][2] = 1;
-    pairing_matrix[2][0] = 1;
-    pairing_matrix[1][3] = 1;
-    pairing_matrix[3][1] = 1;
-
 
 
 }
@@ -120,6 +116,9 @@ void basic_init() {
 void calculate_throughput() {
     calculate_Channel_Gain_Matrix();
     print_Channel_gain_matrix();
+
+    ref1_algo();
+    print_power_allocation_matrix();
     calculate_data_rate_matrix();
     print_data_rate_matrix();
 }
@@ -150,8 +149,16 @@ void print_Channel_gain_matrix() {
         std::cout<<std::endl;
     }
 }
-
+void count_relay_user() {
+    relay_user = 0;
+    for(int i = 0;i < UE;i++) {
+        if (link_selection_matrix[i] == 1) {
+            relay_user++;
+        }
+    }
+}
 void calculate_data_rate_matrix() {
+    count_relay_user();
     for(int i = 0;i < UE;i++) {
         for (int j = 0;j < UE;j++) {
             if (pairing_matrix[i][j] == 1) {
@@ -164,8 +171,6 @@ void calculate_data_rate_matrix() {
 
 void calculate_pair_data_rate(int user1, int user2) {
     if (Channel_gain_matrix[user1][0] > Channel_gain_matrix[user2][0]) { //user 1 is strong user
-        power_allocation_matrix[user1] = total_power * 0.25;
-        power_allocation_matrix[user2] = total_power * 0.25;
         data_rate_matrix[user1][0] = calculate_strong_user_data_rate(Channel_gain_matrix[user1][0], power_allocation_matrix[user1]);
         if (link_selection_matrix[user2] == 0) { //direct link
             data_rate_matrix[user2][0] = calculate_weak_user_VLC_data_rate(Channel_gain_matrix[user2][0], power_allocation_matrix[user1], power_allocation_matrix[user2]);
@@ -177,8 +182,6 @@ void calculate_pair_data_rate(int user1, int user2) {
 
     }
     else { // user 2 is strong user
-        power_allocation_matrix[user1] = total_power * 0.25;
-        power_allocation_matrix[user2] = total_power * 0.25;
         if (link_selection_matrix[user1] == 0) {
             data_rate_matrix[user1][0] = calculate_weak_user_VLC_data_rate(Channel_gain_matrix[user1][0], power_allocation_matrix[user2], power_allocation_matrix[user1]);
         }
@@ -199,5 +202,14 @@ void print_data_rate_matrix() {
             std::cout<<std::setw(15)<<data_rate_matrix[i][j]<<" ";
         }
         std::cout<<std::endl;
+    }
+}
+
+void print_power_allocation_matrix() {
+    std::cout<<std::endl;
+    std::cout<<"power allocation_matrix in time:"<<" "<<Simulator::Now().GetSeconds()<<std::endl;
+    std::cout<<std::left;
+    for(int i = 0;i < UE;i++) {
+        std::cout<<power_allocation_matrix[i]<<std::endl;
     }
 }

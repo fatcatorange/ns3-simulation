@@ -46,6 +46,7 @@
 #include "Channel.h"
 #include "global_environment.h"
 #include "UE_AP_state.h"
+#include "Ref1_algo.h"
 
 using namespace ns3;
 using namespace std;
@@ -109,6 +110,8 @@ int main(int argc, char *argv[]) {
 
 	Simulator::Schedule(Seconds(0.0), &basic_init);
 	Simulator::Schedule(Seconds(0.0), &calculate_throughput);
+	//Simulator::Schedule(Seconds(0.0), &ref1_algo);
+
 	Simulator::Stop(Seconds(simulation_time));//??
     Simulator::Run();
 

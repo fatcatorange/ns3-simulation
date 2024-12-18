@@ -171,6 +171,7 @@ void calculate_data_rate_matrix() {
 
 void calculate_pair_data_rate(int user1, int user2) {
     if (Channel_gain_matrix[user1][0] > Channel_gain_matrix[user2][0]) { //user 1 is strong user
+        std::cout<<"link"<<link_selection_matrix[user2]<<std::endl;
         data_rate_matrix[user1][0] = calculate_strong_user_data_rate(Channel_gain_matrix[user1][0], power_allocation_matrix[user1]);
         if (link_selection_matrix[user2] == 0) { //direct link
             data_rate_matrix[user2][0] = calculate_weak_user_VLC_data_rate(Channel_gain_matrix[user2][0], power_allocation_matrix[user1], power_allocation_matrix[user2]);
@@ -182,6 +183,7 @@ void calculate_pair_data_rate(int user1, int user2) {
 
     }
     else { // user 2 is strong user
+        std::cout<<"link"<<link_selection_matrix[user1]<<std::endl;
         if (link_selection_matrix[user1] == 0) {
             data_rate_matrix[user1][0] = calculate_weak_user_VLC_data_rate(Channel_gain_matrix[user1][0], power_allocation_matrix[user2], power_allocation_matrix[user1]);
         }
@@ -195,7 +197,7 @@ void calculate_pair_data_rate(int user1, int user2) {
 
 void print_data_rate_matrix() {
     std::cout<<std::endl;
-    std::cout<<"channel_gain_matrix in time:"<<" "<<Simulator::Now().GetSeconds()<<std::endl;
+    std::cout<<"data rate_matrix in time:"<<" "<<Simulator::Now().GetSeconds()<<std::endl;
     std::cout<<std::left;
     for(int i = 0;i < UE;i++) {
         for (int j = 0;j < VLC_AP;j++) {

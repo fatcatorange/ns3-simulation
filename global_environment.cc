@@ -1,6 +1,6 @@
 #include "global_environment.h"
 
-int UE = 16;
+int UE = 10;
 int pairing_count = UE / 2;
 
 double room_size_x = 5;

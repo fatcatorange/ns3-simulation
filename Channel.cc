@@ -227,7 +227,7 @@ double calculate_RF_data_rate(double channel_gain, Ptr<Node> user1, Ptr<Node> us
     achievable_rate *= RF_AP_Bandwidth;
     achievable_rate /= std::max(relay_user, 1);
 
-    std::cout<<"data rate:"<<achievable_rate / 1e6<<std::endl;
+    //std::cout<<"data rate:"<<achievable_rate / 1e6<<std::endl;
     return achievable_rate / 1e6; //bps to mbps
 }
 

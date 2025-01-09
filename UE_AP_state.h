@@ -34,6 +34,7 @@ void calculate_data_rate_matrix();
 void calculate_pair_data_rate(int user1, int user2);
 void print_data_rate_matrix();
 void print_power_allocation_matrix();
+double calculate_sum_rate();
 
 extern std::vector<AP_node*> AP_node_list;
 extern std::vector<UE_node*> UE_node_list;

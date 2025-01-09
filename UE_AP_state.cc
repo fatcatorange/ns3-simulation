@@ -215,3 +215,15 @@ void print_power_allocation_matrix() {
         std::cout<<power_allocation_matrix[i]<<std::endl;
     }
 }
+
+double calculate_sum_rate() {
+    double sum_rate = 0;
+    for(int i = 0;i < data_rate_matrix.size();i++) {
+        for(int j = 0;j <data_rate_matrix[i].size();j++) {
+            sum_rate+=data_rate_matrix[i][j];
+        }
+
+    }
+
+    return sum_rate;
+}

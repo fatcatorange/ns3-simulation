@@ -17,6 +17,7 @@ using namespace std;
 std::vector<std::pair<double, int>> sorted_ue_list; //list after sorted by channel gain
 std::vector<double> weight_matrix(UE, 1);
 std::vector<int> match(UE / 2, -1);
+const double INF = std::numeric_limits<double>::max();
 
 /*
 initially, strongest user pairing with the weakest user,
@@ -168,7 +169,7 @@ are not satisfied. Therefore, in such cases, I use Case 1 to allocate power.
 void ref1_power_allocation(std::vector<std::pair<int, int>> &tmp_pairing) {
     double lambda = calculate_lambda(tmp_pairing);
     for(int i = 0;i < tmp_pairing.size();i++) {
-        std::cout<<"st:"<<tmp_pairing[i].first<<" "<<tmp_pairing[i].second<<std::endl;
+        //std::cout<<"st:"<<tmp_pairing[i].first<<" "<<tmp_pairing[i].second<<std::endl;
         pair_power_allocation(tmp_pairing[i].first, tmp_pairing[i].second, lambda);
     }
 }
@@ -228,7 +229,7 @@ void calculate_cost_matrix(std::vector<std::vector<double>> &cost_matrix) {
     for(int i = 0; i < UE / 2;i++) {
         for (int j = 0;j < UE / 2;j++) {
             cost_matrix[i][j] = calculate_pair_cost(sorted_ue_list[i].second, sorted_ue_list[(UE / 2) + j].second); // weak, strong
-            std::cout<<cost_matrix[i][j]<<std::endl;
+            //std::cout<<cost_matrix[i][j]<<std::endl;
             maxi = std::max(maxi, cost_matrix[i][j]);
         }
     }
@@ -244,15 +245,18 @@ void calculate_cost_matrix(std::vector<std::vector<double>> &cost_matrix) {
 
 
 
-bool dfs(int x, std::vector<double> &lx, std::vector<double> &ly, std::vector<int> &s, std::vector<int> &t, std::vector<std::vector<double>> &cost) {
-    int n = UE / 2;
-    s[x] = 1;
-    for (int y = 0; y < n; y++) {
+
+
+// Helper function for DFS
+bool dfs(int x, std::vector<double> &lx, std::vector<double> &ly, std::vector<int> &match, std::vector<bool> &s, std::vector<bool> &t, const std::vector<std::vector<double>> &cost) {
+    int n = cost.size();
+    s[x] = true;
+    for (int y = 0; y < n; ++y) {
         if (t[y]) continue;
         double slack = lx[x] + ly[y] - cost[x][y];
         if (slack == 0) {
-            t[y] = 1;
-            if (match[y] == -1 || dfs(match[y], lx, ly, s, t, cost)) {
+            t[y] = true;
+            if (match[y] == -1 || dfs(match[y], lx, ly, match, s, t, cost)) {
                 match[y] = x;
                 return true;
             }
@@ -261,54 +265,131 @@ bool dfs(int x, std::vector<double> &lx, std::vector<double> &ly, std::vector<in
     return false;
 }
 
-void update_labels(std::vector<double> &lx, std::vector<double> &ly, std::vector<int> &s, std::vector<int> &t, std::vector<std::vector<double>> &cost) {
-    double delta = std::numeric_limits<double>::max();
-    int n = UE / 2;
-    for (int x = 0; x < n; x++) {
+// Update labels to reduce slack
+void update_labels(std::vector<double> &lx, std::vector<double> &ly, const std::vector<bool> &s, const std::vector<bool> &t, const std::vector<std::vector<double>> &cost) {
+    int n = cost.size();
+    double delta = INF;
+    for (int x = 0; x < n; ++x) {
         if (s[x]) {
-            for (int y = 0; y < n; y++) {
+            for (int y = 0; y < n; ++y) {
                 if (!t[y]) {
                     delta = std::min(delta, lx[x] + ly[y] - cost[x][y]);
                 }
             }
         }
     }
-    for (int i = 0; i < n; i++) {
-        if (s[i]) lx[i] -= delta;
-        if (t[i]) ly[i] += delta;
+    for (int x = 0; x < n; ++x) {
+        if (s[x]) lx[x] -= delta;
+    }
+    for (int y = 0; y < n; ++y) {
+        if (t[y]) ly[y] += delta;
     }
 }
 
-void hungarian(std::vector<std::vector<double>> &cost_matrix) {
-    int n = UE / 2;
-    std::vector<double> lx(n, 0);   // 行與列的標籤
-    std::vector<double> ly(n, 0);
-    std::vector<int> s, t;    // 標記集
+// Hungarian algorithm implementation
+std::vector<int> hungarian(const std::vector<std::vector<double>> &cost) {
+    int n = cost.size();
+    std::vector<double> lx(n, 0), ly(n, 0);
+    std::vector<int> match(n, -1);
 
-    for (int i = 0; i < n; i++) {
-        lx[i] = *std::max_element(cost_matrix[i].begin(), cost_matrix[i].end());
+    // Initialize label lx to the maximum value in each row
+    for (int i = 0; i < n; ++i) {
+        lx[i] = *std::max_element(cost[i].begin(), cost[i].end());
     }
 
-    for (int i = 0;i < n;i++) {
-        while(true) {
-           s.assign(n, 0);
-           t.assign(n, 0);
-           if (dfs(i, lx, ly, s, t, cost_matrix)) break;
-           update_labels(lx, ly, s, t, cost_matrix);
+    // Find a perfect matching
+    for (int i = 0; i < n; ++i) {
+        while (true) {
+            std::vector<bool> s(n, false), t(n, false);
+            if (dfs(i, lx, ly, match, s, t, cost)) break;
+            update_labels(lx, ly, s, t, cost);
         }
     }
+
+    return match;
 }
 
 void ref1_user_pairing() {
+    for (int i = 0;i < UE;i++) {
+        for (int j = 0;j < UE;j++) {
+            pairing_matrix[i][j] = 0;
+        }
+    }
     pairing_matrix.resize(UE, std::vector<int>(UE, 0));
     std::vector<std::vector<double>> cost_matrix(UE / 2, std::vector<double>(UE / 2, 0));
     calculate_cost_matrix(cost_matrix);
     print_cost_matrix(cost_matrix);
-    hungarian(cost_matrix);
+    match = hungarian(cost_matrix);
     for (int i = 0;i < match.size();i++) {
-        std::cout<<"weak user "<<sorted_ue_list[i].second<<" pairing with strong user"<<sorted_ue_list[i + (UE / 2)].second<<std::endl;
+        //std::cout<<"weak user "<<sorted_ue_list[i].second<<" pairing with strong user"<<sorted_ue_list[i + (UE / 2)].second<<std::endl;
+        pairing_matrix[sorted_ue_list[i].second][sorted_ue_list[i + (UE / 2)].second] = 1;
     }
 
+
+
+}
+
+double calculate_hybrid_link_bonus(int strong_user, int weak_user) {
+
+    double VLC_rate = std::min(calculate_weak_user_VLC_data_rate(Channel_gain_matrix[strong_user][0], power_allocation_matrix[strong_user], power_allocation_matrix[weak_user]),
+                                     calculate_RF_data_rate(Channel_gain_matrix[strong_user][0], UE_node_list[strong_user]->node, UE_node_list[weak_user]->node));
+    double dir_rate = calculate_weak_user_VLC_data_rate(Channel_gain_matrix[weak_user][0], power_allocation_matrix[strong_user], power_allocation_matrix[weak_user]);
+    return VLC_rate - dir_rate;
+}
+
+double calculate_link_table_pair_rate(int strong_user, int weak_user, int pair_link) {
+    double rate = calculate_strong_user_data_rate(Channel_gain_matrix[strong_user][0], power_allocation_matrix[strong_user]);
+    if (pair_link == 0) {
+        rate+=std::min(calculate_weak_user_VLC_data_rate(Channel_gain_matrix[strong_user][0], power_allocation_matrix[strong_user], power_allocation_matrix[weak_user]),
+                        calculate_RF_data_rate(Channel_gain_matrix[strong_user][0], UE_node_list[strong_user]->node, UE_node_list[weak_user]->node));
+    }
+    else {
+        rate+=calculate_weak_user_VLC_data_rate(Channel_gain_matrix[weak_user][0], power_allocation_matrix[strong_user], power_allocation_matrix[weak_user]);
+    }
+
+    std::cout<<"dir:"<<calculate_weak_user_VLC_data_rate(Channel_gain_matrix[weak_user][0], power_allocation_matrix[strong_user], power_allocation_matrix[weak_user])<<std::endl;
+    std::cout<<"hybrid:"<<std::min(calculate_weak_user_VLC_data_rate(Channel_gain_matrix[strong_user][0], power_allocation_matrix[strong_user], power_allocation_matrix[weak_user]),
+                        calculate_RF_data_rate(Channel_gain_matrix[strong_user][0], UE_node_list[strong_user]->node, UE_node_list[weak_user]->node))<<std::endl;
+
+    return rate;
+}
+
+void ref1_link_selection(std::vector<std::pair<int, int>> &tmp_pairing) {
+    std::vector<std::vector<int>> link_selection_table(UE / 2 + 1, std::vector<int>(UE / 2, 0));
+    for(int hybrid_user = 1;hybrid_user <= tmp_pairing.size() ;hybrid_user++) {
+        std::priority_queue<pair<double, int>> rate_pq;
+        for(int j = 0;j < tmp_pairing.size(); j++) {
+            relay_user = hybrid_user;
+            rate_pq.push({calculate_hybrid_link_bonus(tmp_pairing[j].first, tmp_pairing[j].second), j});
+        }
+        for(int i = 0;i < hybrid_user;i++) {
+            int user = rate_pq.top().second;
+            rate_pq.pop();
+            link_selection_table[hybrid_user][user] = 1;
+        }
+    }
+    double maximum_rate = 0;
+    int maximum_index = 0;
+    for(int i = 0;i < link_selection_table.size();i++) {
+        double now_rate = 0;
+        for(int j = 0;j < link_selection_table[i].size();j++) {
+            now_rate+=calculate_link_table_pair_rate(tmp_pairing[j].first, tmp_pairing[j].second, link_selection_table[i][j]);
+        }
+        std::cout<<"now rate: "<<now_rate<<std::endl;
+        if (now_rate > maximum_rate) {
+            maximum_rate = now_rate;
+            maximum_index = i;
+        }
+
+    }
+    std::cout<<maximum_index<<std::endl;
+    relay_user = maximum_index;
+    link_selection_matrix.resize(UE, 0);
+    for (int i = 0;i < link_selection_table[maximum_index].size();i++) {
+        if (link_selection_table[maximum_index][i] == 1) {
+            link_selection_matrix[tmp_pairing[i].second] = 1;
+        }
+    }
 
 }
 
@@ -317,18 +398,27 @@ void ref1_user_pairing() {
 void ref1_algo() {
     init_ref1_algo();
     int round = 0;
+    double last = 0;
+    double now_rate = 0;
 
-    //while(round <= maximum_iteration) {
+    while(round <= maximum_iteration) {
         std::vector<std::pair<int, int>> tmp_pairing; // [strong user, weak user]
         check_pairing(tmp_pairing);
         ref1_power_allocation(tmp_pairing);
         ref1_user_pairing();
-        //ref1_link_selection();
+        ref1_link_selection(tmp_pairing);
         //clear_pairing_matrix();
         //update_weight();
+        calculate_data_rate_matrix();
+        last = now_rate;
+        now_rate = calculate_sum_rate();
+        std::cout<<now_rate<<" "<<last<<std::endl;
+        if (now_rate - last <= (now_rate / 1000)) {
+            break;
+        }
         round++;
 
-    //}
+    }
 
 
 }

@@ -19,7 +19,7 @@ std::vector<UE_node*> UE_node_list;
 std::vector<std::vector<double>> Channel_gain_matrix(UE,std::vector<double>(VLC_AP));
 std::vector<std::vector<int>> pairing_matrix(UE, std::vector<int>(UE)); // if i, j == 1 => i and j are pairing
 std::vector<std::vector<double>> data_rate_matrix(UE,std::vector<double>(VLC_AP));
-std::vector<double> power_allocation_matrix(UE, 0); // power for every users
+std::vector<double> power_allocation_matrix(UE, (total_power / UE)); // power for every users
 std::vector<int> link_selection_matrix(UE, 0); // 0 = direct link 1 = relay link
 
 
@@ -53,7 +53,8 @@ void initUE(NodeContainer &UE_nodes,std::vector<UE_node*> &UE_node_list)
     MobilityHelper UE_mobility;
     Ptr<ListPositionAllocator> UE_pos_list = CreateObject<ListPositionAllocator>();
 
-    srand(time(NULL));
+    unsigned seed = std::chrono::steady_clock::now().time_since_epoch().count();
+    srand(seed);
 
     double x = room_size_x;
     double y = room_size_y;
@@ -162,7 +163,6 @@ void calculate_data_rate_matrix() {
     for(int i = 0;i < UE;i++) {
         for (int j = 0;j < UE;j++) {
             if (pairing_matrix[i][j] == 1) {
-                std::cout<<i<<" "<<j<<std::endl;
                 calculate_pair_data_rate(i, j);
             }
         }
@@ -171,7 +171,7 @@ void calculate_data_rate_matrix() {
 
 void calculate_pair_data_rate(int user1, int user2) {
     if (Channel_gain_matrix[user1][0] > Channel_gain_matrix[user2][0]) { //user 1 is strong user
-        std::cout<<"link"<<link_selection_matrix[user2]<<std::endl;
+        //std::cout<<"link"<<link_selection_matrix[user2]<<std::endl;
         data_rate_matrix[user1][0] = calculate_strong_user_data_rate(Channel_gain_matrix[user1][0], power_allocation_matrix[user1]);
         if (link_selection_matrix[user2] == 0) { //direct link
             data_rate_matrix[user2][0] = calculate_weak_user_VLC_data_rate(Channel_gain_matrix[user2][0], power_allocation_matrix[user1], power_allocation_matrix[user2]);
@@ -183,7 +183,7 @@ void calculate_pair_data_rate(int user1, int user2) {
 
     }
     else { // user 2 is strong user
-        std::cout<<"link"<<link_selection_matrix[user1]<<std::endl;
+        //std::cout<<"link"<<link_selection_matrix[user1]<<std::endl;
         if (link_selection_matrix[user1] == 0) {
             data_rate_matrix[user1][0] = calculate_weak_user_VLC_data_rate(Channel_gain_matrix[user1][0], power_allocation_matrix[user2], power_allocation_matrix[user1]);
         }
@@ -226,4 +226,21 @@ double calculate_sum_rate() {
     }
 
     return sum_rate;
+}
+
+double throughput_write_file() {
+    std::fstream outFile;
+    outFile.open("/home/jimmy/repos/ns-3-allinone/ns-3.25/scratch/thesis/output.csv",std::ios::out|std::ios::app);
+    if(outFile.is_open() == false)
+    {
+        std::cout<<"file not open"<<std::endl;
+    }
+    else
+    {
+        //outFile<<std::endl;
+        outFile<<calculate_sum_rate()<<','<<std::endl;//throughput
+
+        //outFile<<std::endl;
+    }
+    outFile.close();
 }

@@ -115,6 +115,8 @@ int main(int argc, char *argv[]) {
 	Simulator::Stop(Seconds(simulation_time));//??
     Simulator::Run();
 
+    throughput_write_file();
+
 }
 
 //-----------------------------------------------------------------------------

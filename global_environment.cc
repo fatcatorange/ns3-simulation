@@ -1,6 +1,6 @@
 #include "global_environment.h"
 
-int UE = 10;
+int UE = 2;
 int pairing_count = UE / 2;
 
 double room_size_x = 5;
@@ -44,5 +44,5 @@ double fill_factor = 0.75;
 double thermal_voltage = 0.025;
 
 int maximum_iteration = 100;
-int relay_user = 0;
+int relay_user = 1;
 

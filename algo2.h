@@ -1,0 +1,6 @@
+#ifndef ALGO2_H_INCLUDED
+#define ALGO2_H_INCLUDED
+
+
+
+#endif // ALGO2_H_INCLUDED

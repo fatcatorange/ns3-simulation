@@ -117,6 +117,8 @@ int main(int argc, char *argv[]) {
 
     throughput_write_file();
 
+    pair_fairness_write_file();
+
 }
 
 //-----------------------------------------------------------------------------

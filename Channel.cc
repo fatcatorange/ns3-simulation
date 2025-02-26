@@ -104,7 +104,7 @@ double Get_Incidence_Angle_AP_UE(Ptr<Node> AP,Ptr<Node> UE){
 double calculate_strong_user_data_rate(double channel_gain ,double strong_user_power) {
     //std::cout<<"rate:"<<channel_gain<<" "<<strong_user_power<<std::endl;
     double data_rate = VLC_AP_Bandwidth / (2 * pairing_count);
-    double noise = VLC_AP_Bandwidth / (2 * pairing_count) * Nl * pow(10, 6); // A^2/Hz -> A^2/MHz
+    double noise = VLC_AP_Bandwidth / (pairing_count) * Nl * pow(10, 6); // A^2/Hz -> A^2/MHz
     double c = 1 / (2 * M_PI);
     double signal = c;
 
@@ -121,7 +121,7 @@ double calculate_strong_user_data_rate(double channel_gain ,double strong_user_p
 
 double calculate_weak_user_VLC_data_rate(double channel_gain ,double strong_user_power, double weak_user_power) {
     double data_rate = VLC_AP_Bandwidth / (2 * pairing_count);
-    double noise = VLC_AP_Bandwidth / (2 * pairing_count) * Nl * pow(10, 6); // A^2/Hz -> A^2/MHz
+    double noise = VLC_AP_Bandwidth / (pairing_count) * Nl * pow(10, 6); // A^2/Hz -> A^2/MHz
     double c = 1 / (2 * M_PI);
     double signal = c;
     double interference = c;

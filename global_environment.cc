@@ -1,6 +1,6 @@
 #include "global_environment.h"
 
-int UE = 2;
+int UE = 10;
 int pairing_count = UE / 2;
 
 double room_size_x = 5;
@@ -42,6 +42,27 @@ double central_carrier_frequency = 2400000000;
 double angle_of_LOS_arrival = 45;
 double fill_factor = 0.75;
 double thermal_voltage = 0.025;
+
+double minimum_satisfaction = 0.5;
+
+
+/*
+These two variables define the range of maximum data rates.
+For example, if a user's minimum satisfaction level is 0.7
+and their maximum data rate falls within this range (e.g., 40),
+then their minimum satisfied data rate is calculated as:
+
+40 * 0.7 = 28
+*/
+double minimum_data_rate_requirement = 0;
+double maximum_data_rate_requirement = 50;
+
+
+// 0 = https://ieeexplore.ieee.org/document/9259258 paper propose,
+// 1 = chrome-extension://bocbaocobfecmglnmeaeppambideimao/pdf/viewer.html?file=https%3A%2F%2Farxiv.org%2Fpdf%2F2005.09143 paper propose
+// 2 = GRPA
+// 3 = use formula (22)
+int power_allocation_formula = 3;
 
 int maximum_iteration = 100;
 int relay_user = 1;

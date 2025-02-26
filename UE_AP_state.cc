@@ -3,6 +3,8 @@
 #include <string>
 #include <chrono> //seed
 #include <cmath>
+#include <random>
+#include <unordered_set>
 
 #include "ns3/core-module.h"
 #include "ns3/network-module.h"
@@ -21,6 +23,8 @@ std::vector<std::vector<int>> pairing_matrix(UE, std::vector<int>(UE)); // if i,
 std::vector<std::vector<double>> data_rate_matrix(UE,std::vector<double>(VLC_AP));
 std::vector<double> power_allocation_matrix(UE, (total_power / UE)); // power for every users
 std::vector<int> link_selection_matrix(UE, 0); // 0 = direct link 1 = relay link
+std::vector<double> minimum_satisfaction_matrix(UE, 0);
+std::vector<double> maximum_requirement_matrix(UE, 0);
 
 
 void initVLC_AP(NodeContainer &VLC_AP_nodes, std::vector<AP_node*> &AP_list)
@@ -81,6 +85,30 @@ void initUE(NodeContainer &UE_nodes,std::vector<UE_node*> &UE_node_list)
 
 }
 
+void generate_user_requirement() {
+    std::random_device rd;   // 真正的隨機種子
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<double> maximum_requirement_distribution(minimum_data_rate_requirement, maximum_data_rate_requirement);
+    std::uniform_real_distribution<double> minimum_satisfaction_distribution(minimum_satisfaction, 1.0);
+
+    //generate maximum requirement
+    for(int i = 0;i < UE;i++) {
+        double random_value = maximum_requirement_distribution(gen);
+        maximum_requirement_matrix[i] = random_value;
+    }
+
+    for(int i = 0;i < UE;i++) {
+        double random_value = minimum_satisfaction_distribution(gen);
+        minimum_satisfaction_matrix[i] = random_value;
+    }
+}
+
+void print_user_requirement() {
+    for(int i = 0;i < UE;i++) {
+        std::cout<<"user "<<i<<" maximum requirement:"<<" "<<maximum_requirement_matrix[i]<<" minimum satisfaction: "<<minimum_satisfaction_matrix[i]<<std::endl;
+    }
+}
+
 void printUE(std::vector<UE_node*> &UE_node_list)
 {
     std::cout<<std::endl;
@@ -109,19 +137,19 @@ void basic_init() {
 
     printUE(UE_node_list);
 
-
-
-
 }
 
 void calculate_throughput() {
     calculate_Channel_Gain_Matrix();
     print_Channel_gain_matrix();
-
+    generate_user_requirement();
+    print_user_requirement();
     ref1_algo();
     print_power_allocation_matrix();
     calculate_data_rate_matrix();
     print_data_rate_matrix();
+
+
 }
 
 
@@ -228,6 +256,46 @@ double calculate_sum_rate() {
     return sum_rate;
 }
 
+double calculate_fairness() {
+    double jann_fairness = 0;
+    double top = 0;
+    double down = 0;
+    for(int i = 0;i < UE;i++) {
+        double now_rate = data_rate_matrix[i][0];
+        top+=now_rate;
+        down+=pow(now_rate, 2);
+    }
+
+    top = pow(top, 2);
+    down = 2 * pairing_count * down;
+
+    return top / down;
+}
+
+double calculate_pair_fairness() {
+    double jann_fairness = 0;
+    double top = 0;
+    double down = 0;
+    std::unordered_set<int> visited;
+    for(int i = 0;i < pairing_matrix.size();i++) {
+        for(int j = 0;j < pairing_matrix[i].size();j++) {
+            if (pairing_matrix[i][j] == 1 && visited.count(i) == 0 && visited.count(j) == 0) {
+                double now_rate = data_rate_matrix[i][0] + data_rate_matrix[j][0];
+                //std::cout<<"now rate:"<<i<<" "<<j<<" "<<now_rate<<std::endl;
+                top+=now_rate;
+                down+=pow(now_rate, 2);
+                visited.insert(i);
+                visited.insert(j);
+            }
+        }
+    }
+
+    top = pow(top, 2);
+    down = pairing_count * down;
+
+    return top / down;
+}
+
 double throughput_write_file() {
     std::fstream outFile;
     outFile.open("/home/jimmy/repos/ns-3-allinone/ns-3.25/scratch/thesis/output.csv",std::ios::out|std::ios::app);
@@ -238,9 +306,16 @@ double throughput_write_file() {
     else
     {
         //outFile<<std::endl;
-        outFile<<calculate_sum_rate()<<','<<std::endl;//throughput
-
+        outFile<<calculate_sum_rate()<<','<<calculate_pair_fairness()<<','<<calculate_fairness()<<std::endl;//throughput
+        //std::cout<<calculate_sum_rate()<<','<<calculate_pair_fairness()<<','<<calculate_fairness()<<std::endl;
         //outFile<<std::endl;
     }
     outFile.close();
+}
+
+
+
+
+void pair_fairness_write_file() {
+    //std::cout<<"fairness:"<<calculate_pair_fairness()<<std::endl;
 }

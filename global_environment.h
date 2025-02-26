@@ -60,7 +60,14 @@ extern double angle_of_LOS_arrival;
 extern double fill_factor;
 extern double thermal_voltage;
 
+extern double minimum_satisfaction;
+
+extern double minimum_data_rate_requirement;
+extern double maximum_data_rate_requirement;
+
+extern int power_allocation_formula;
 extern int maximum_iteration;
+extern int minimum_iteration;
 extern int relay_user;
 
 

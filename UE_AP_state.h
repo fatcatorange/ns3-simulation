@@ -36,6 +36,7 @@ void print_data_rate_matrix();
 void print_power_allocation_matrix();
 double calculate_sum_rate();
 double throughput_write_file();
+void pair_fairness_write_file();
 
 extern std::vector<AP_node*> AP_node_list;
 extern std::vector<UE_node*> UE_node_list;
@@ -45,6 +46,8 @@ extern std::vector<std::vector<int>> pairing_matrix;
 extern std::vector<std::vector<double>> data_rate_matrix;
 extern std::vector<double> power_allocation_matrix;
 extern std::vector<int> link_selection_matrix;
+extern std::vector<double> minimum_satisfication_matrix;
+extern std::vector<double> maximum_requirement_matrix;
 
 
 

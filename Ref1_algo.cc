@@ -106,7 +106,7 @@ are not satisfied. Therefore, in such cases, I use Case 1 to allocate power.
     else {
         term1 = weight_matrix[strong_user] * VLC_AP_Bandwidth / (2 * pairing_count * lambda);
     }
-    double noise = VLC_AP_Bandwidth / (2 * pairing_count) * Nl * pow(10, 6);
+    double noise = VLC_AP_Bandwidth / (pairing_count) * Nl * pow(10, 6);
     double c = 1 / (2 * M_PI);
     double psi_j = c;
     psi_j *= pow(VLC_optical_to_electric_factor, 2);
@@ -125,30 +125,61 @@ are not satisfied. Therefore, in such cases, I use Case 1 to allocate power.
     std::cout<<"pair power:"<<pair_total_power<<std::endl;
 
     std::cout<<"psi: "<<weight_matrix[weak_user] <<" "<< weight_matrix[strong_user] <<" "<< (psi_j / psi_i)<<std::endl;
-    if ( link_selection_matrix[weak_user] == 0 && (weight_matrix[weak_user] / weight_matrix[strong_user]) < (psi_j / psi_i)) { //case 2, formula (26)
-        double epsilon = 1e-15;
-        if (abs(weight_matrix[strong_user] - weight_matrix[weak_user]) < epsilon) {
-            weight_matrix[weak_user]+=epsilon;
+    if ( link_selection_matrix[weak_user] == 0 && power_allocation_formula != 3) { //case 2, formula (26)
+        if (power_allocation_formula == 0) {
+            double epsilon = 1e-15;
+            if (abs(weight_matrix[strong_user] - weight_matrix[weak_user]) < epsilon) {
+                weight_matrix[weak_user]+=epsilon;
+            }
+            double sigma = (weight_matrix[weak_user] * psi_i) - (weight_matrix[strong_user] * psi_j);
+            sigma /= psi_j * psi_i * (weight_matrix[strong_user] - weight_matrix[weak_user]);
+            std::cout<<"sigma:"<<strong_user<<" "<<weak_user<<" "<<sigma<<std::endl;
+            if (pair_total_power > 2 * sigma && (weight_matrix[weak_user] / weight_matrix[strong_user]) < (psi_j / psi_i)) {
+                power_allocation_matrix[strong_user] = sigma;
+                power_allocation_matrix[weak_user] = pair_total_power - power_allocation_matrix[strong_user];
+
+            }
+            else {
+
+                double ro1 = -1 + sqrt(1 + (pair_total_power * psi_j));
+                ro1 /= psi_j;
+
+                double A = 2 * calculate_RF_data_rate(Channel_gain_matrix[strong_user][0], UE_node_list[strong_user]->node, UE_node_list[weak_user]->node) * pairing_count / (VLC_AP_Bandwidth * 1e6);
+                A = pow(2, A);
+
+                double ro2 = pair_total_power * psi_j + 1 - A;
+                //std::cout<<"ro:"<<ro1<<" "<<ro2<<std::endl;
+                power_allocation_matrix[strong_user] = std::min(ro1, ro2);
+                power_allocation_matrix[weak_user] = pair_total_power - power_allocation_matrix[strong_user];
+            }
         }
-        double sigma = (weight_matrix[weak_user] * psi_i) - (weight_matrix[strong_user] * psi_j);
-        sigma /= psi_j * psi_i * (weight_matrix[strong_user] - weight_matrix[weak_user]);
-        std::cout<<"sigma:"<<strong_user<<" "<<weak_user<<" "<<sigma<<std::endl;
-        if (pair_total_power > 2 * sigma) {
-            power_allocation_matrix[strong_user] = sigma;
-            power_allocation_matrix[weak_user] = pair_total_power - power_allocation_matrix[strong_user];
+        else if(power_allocation_formula == 1) {
+            std::cout<<"pa2"<<std::endl;
+            double Rth = 110 / UE;
+            double Ask = std::max((( 2 * Rth - 1) / psi_j) , 0.0);
+            double Csk = (1 + (psi_i * pair_total_power));
+            Csk/=psi_i * pow(2, ((2 * Rth) / (VLC_AP_Bandwidth / pairing_count)));
+            Csk -= (1 / psi_i);
+            Csk = std::min(Csk, pair_total_power / 2);
 
+            if (psi_j < psi_i) {
+                power_allocation_matrix[strong_user] = Ask;
+                power_allocation_matrix[weak_user] = pair_total_power - Ask;
+            }
+            else {
+                power_allocation_matrix[strong_user] = Csk;
+                power_allocation_matrix[weak_user] = pair_total_power - Csk;
+            }
+
+            std::cout<<"power:"<<power_allocation_matrix[strong_user]<<" "<<power_allocation_matrix[weak_user]<<std::endl;
         }
-        else {
-            double ro1 = -1 + sqrt(1 + (pair_total_power * psi_j));
-            ro1 /= psi_j;
+        else if(power_allocation_formula == 2){
+            double strong_user_power_ratio = 1;
+            double weak_user_power_ratio = 1;
+            strong_user_power_ratio = pow(Channel_gain_matrix[weak_user][0] / Channel_gain_matrix[strong_user][0], 2);
+            power_allocation_matrix[strong_user] = pair_total_power * (strong_user_power_ratio / (strong_user_power_ratio + weak_user_power_ratio));
+            power_allocation_matrix[weak_user] = pair_total_power * (weak_user_power_ratio / (strong_user_power_ratio + weak_user_power_ratio));
 
-            double A = 2 * calculate_RF_data_rate(Channel_gain_matrix[strong_user][0], UE_node_list[strong_user]->node, UE_node_list[weak_user]->node) * pairing_count / (VLC_AP_Bandwidth * 1e6);
-            A = pow(2, A);
-
-            double ro2 = pair_total_power * psi_j + 1 - A;
-            //std::cout<<"ro:"<<ro1<<" "<<ro2<<std::endl;
-            power_allocation_matrix[strong_user] = std::min(ro1, ro2);
-            power_allocation_matrix[weak_user] = pair_total_power - power_allocation_matrix[strong_user];
         }
 
 

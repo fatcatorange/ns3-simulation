@@ -33,7 +33,7 @@ double Get_Incidence_Angle_AP_UE(Ptr<Node> AP,Ptr<Node> UE);
 
 double calculate_strong_user_data_rate(double channel_gain ,double strong_user_power);
 
-double calculate_weak_user_VLC_data_rate(double channel_gain ,double strong_user_power, double weak_user_power);
+double calculate_weak_user_VLC_data_rate(long double channel_gain ,long double strong_user_power, long double weak_user_power);
 
 double calculate_RF_data_rate(double channel_gain, Ptr<Node> user1, Ptr<Node> user2);
 

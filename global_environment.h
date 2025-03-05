@@ -28,42 +28,42 @@ extern double room_size_z;
 extern double simulation_time;
 
 extern int VLC_AP;
-extern double d_ref;
-extern double central_freq;
+extern long double d_ref;
+extern long double central_freq;
 
-extern double VLC_field_of_view;
-extern double VLC_PHI_half;
-extern double VLC_filter_gain;
-extern double VLC_concentrator_gain;
-extern double VLC_refractive_index;
-extern double VLC_receiver_area;
-extern double VLC_reflect_efficiency;
-extern double VLC_optical_to_electric_factor;
-extern double VLC_electric_to_optical_factor;
+extern long double VLC_field_of_view;
+extern long double VLC_PHI_half;
+extern long double VLC_filter_gain;
+extern long double VLC_concentrator_gain;
+extern long double VLC_refractive_index;
+extern long double VLC_receiver_area;
+extern long double VLC_reflect_efficiency;
+extern long double VLC_optical_to_electric_factor;
+extern long double VLC_electric_to_optical_factor;
 
-extern double maximum_current;
-extern double minimum_current;
-extern double total_power;
+extern long double maximum_current;
+extern long double minimum_current;
+extern long double total_power;
 
-extern double kappa;
-extern double Nl;
-extern double VLC_AP_Popt;
-extern double VLC_AP_Bandwidth;
+extern long double kappa;
+extern long double Nl;
+extern long double VLC_AP_Popt;
+extern long double VLC_AP_Bandwidth;
 
-extern double RF_AP_Bandwidth;
-extern double Nw;
+extern long double RF_AP_Bandwidth;
+extern long double Nw;
 
-extern double breakpoint;
-extern double dark_saturation_current;
-extern double central_carrier_frequency;
-extern double angle_of_LOS_arrival;
-extern double fill_factor;
-extern double thermal_voltage;
+extern long double breakpoint;
+extern long double dark_saturation_current;
+extern long double central_carrier_frequency;
+extern long double angle_of_LOS_arrival;
+extern long double fill_factor;
+extern long double thermal_voltage;
 
-extern double minimum_satisfaction;
+extern long double minimum_satisfaction;
 
-extern double minimum_data_rate_requirement;
-extern double maximum_data_rate_requirement;
+extern long double minimum_data_rate_requirement;
+extern long double maximum_data_rate_requirement;
 
 extern int power_allocation_formula;
 extern int maximum_iteration;

@@ -46,7 +46,7 @@ extern std::vector<std::vector<int>> pairing_matrix;
 extern std::vector<std::vector<double>> data_rate_matrix;
 extern std::vector<double> power_allocation_matrix;
 extern std::vector<int> link_selection_matrix;
-extern std::vector<double> minimum_satisfication_matrix;
+extern std::vector<double> minimum_satisfaction_matrix;
 extern std::vector<double> maximum_requirement_matrix;
 
 

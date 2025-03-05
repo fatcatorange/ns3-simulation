@@ -9,7 +9,7 @@
 #include "Channel.h"
 #include "global_environment.h"
 #include "UE_AP_state.h"
-
+#include "Hungarian.h"
 #include "Ref1_algo.h"
 
 using namespace std;
@@ -282,70 +282,6 @@ void calculate_cost_matrix(std::vector<std::vector<double>> &cost_matrix) {
 
 
 
-
-
-// Helper function for DFS
-bool dfs(int x, std::vector<double> &lx, std::vector<double> &ly, std::vector<int> &match, std::vector<bool> &s, std::vector<bool> &t, const std::vector<std::vector<double>> &cost) {
-    int n = cost.size();
-    s[x] = true;
-    for (int y = 0; y < n; ++y) {
-        if (t[y]) continue;
-        double slack = lx[x] + ly[y] - cost[x][y];
-        if (slack == 0) {
-            t[y] = true;
-            if (match[y] == -1 || dfs(match[y], lx, ly, match, s, t, cost)) {
-                match[y] = x;
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
-// Update labels to reduce slack
-void update_labels(std::vector<double> &lx, std::vector<double> &ly, const std::vector<bool> &s, const std::vector<bool> &t, const std::vector<std::vector<double>> &cost) {
-    int n = cost.size();
-    double delta = INF;
-    for (int x = 0; x < n; ++x) {
-        if (s[x]) {
-            for (int y = 0; y < n; ++y) {
-                if (!t[y]) {
-                    delta = std::min(delta, lx[x] + ly[y] - cost[x][y]);
-                }
-            }
-        }
-    }
-    for (int x = 0; x < n; ++x) {
-        if (s[x]) lx[x] -= delta;
-    }
-    for (int y = 0; y < n; ++y) {
-        if (t[y]) ly[y] += delta;
-    }
-}
-
-// Hungarian algorithm implementation
-std::vector<int> hungarian(const std::vector<std::vector<double>> &cost) {
-    int n = cost.size();
-    std::vector<double> lx(n, 0), ly(n, 0);
-    std::vector<int> match(n, -1);
-
-    // Initialize label lx to the maximum value in each row
-    for (int i = 0; i < n; ++i) {
-        lx[i] = *std::max_element(cost[i].begin(), cost[i].end());
-    }
-
-    // Find a perfect matching
-    for (int i = 0; i < n; ++i) {
-        while (true) {
-            std::vector<bool> s(n, false), t(n, false);
-            if (dfs(i, lx, ly, match, s, t, cost)) break;
-            update_labels(lx, ly, s, t, cost);
-        }
-    }
-
-    return match;
-}
-
 void ref1_user_pairing() {
     for (int i = 0;i < UE;i++) {
         for (int j = 0;j < UE;j++) {
@@ -356,12 +292,18 @@ void ref1_user_pairing() {
     std::vector<std::vector<double>> cost_matrix(UE / 2, std::vector<double>(UE / 2, 0));
     calculate_cost_matrix(cost_matrix);
     print_cost_matrix(cost_matrix);
-    std::cout<<"??"<<std::endl;
-    match = hungarian(cost_matrix);
+    HungarianAlgorithm HungAlgo;
+
+    HungAlgo.Solve(cost_matrix, match);
+
+    for (unsigned int x = 0; x < cost_matrix.size(); x++)
+		std::cout << x << "," << match[x] << "\t";
 
     for (int i = 0;i < match.size();i++) {
         //std::cout<<"weak user "<<sorted_ue_list[i].second<<" pairing with strong user"<<sorted_ue_list[i + (UE / 2)].second<<std::endl;
-        pairing_matrix[sorted_ue_list[i].second][sorted_ue_list[i + (UE / 2)].second] = 1;
+        int wu = sorted_ue_list[i].second;
+        int su = sorted_ue_list[match[i] + (UE / 2)].second;
+        pairing_matrix[wu][su] = 1;
     }
 
 

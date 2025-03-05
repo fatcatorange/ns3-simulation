@@ -14,6 +14,7 @@
 #include "Channel.h"
 #include "global_environment.h"
 #include "Ref1_algo.h"
+#include "algo2.h"
 
 std::vector<AP_node*> AP_node_list;
 std::vector<UE_node*> UE_node_list;
@@ -144,10 +145,16 @@ void calculate_throughput() {
     print_Channel_gain_matrix();
     generate_user_requirement();
     print_user_requirement();
-    ref1_algo();
+
+    init_ref1_algo();
+    algorithm2();
+    /*
+
     print_power_allocation_matrix();
     calculate_data_rate_matrix();
     print_data_rate_matrix();
+    */
+
 
 
 }

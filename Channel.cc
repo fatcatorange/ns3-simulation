@@ -103,15 +103,15 @@ double Get_Incidence_Angle_AP_UE(Ptr<Node> AP,Ptr<Node> UE){
 
 double calculate_strong_user_data_rate(double channel_gain ,double strong_user_power) {
     //std::cout<<"rate:"<<channel_gain<<" "<<strong_user_power<<std::endl;
-    double data_rate = VLC_AP_Bandwidth / (2 * pairing_count);
+    double data_rate = VLC_AP_Bandwidth / (2.0 * pairing_count);
     double noise = VLC_AP_Bandwidth / (pairing_count) * Nl * pow(10, 6); // A^2/Hz -> A^2/MHz
-    double c = 1 / (2 * M_PI);
+    double c = 1 / (2.0 * M_PI);
     double signal = c;
 
 
-    signal *= pow(VLC_optical_to_electric_factor, 2);
-    signal *= pow(VLC_electric_to_optical_factor, 2);
-    signal *= pow(channel_gain, 2);
+    signal *= pow(VLC_optical_to_electric_factor, 2.0);
+    signal *= pow(VLC_electric_to_optical_factor, 2.0);
+    signal *= pow(channel_gain, 2.0);
     signal *= strong_user_power;
     double tmp = signal / noise;
     data_rate*= log2(1 + (signal / noise));
@@ -119,25 +119,26 @@ double calculate_strong_user_data_rate(double channel_gain ,double strong_user_p
     return data_rate;
 }
 
-double calculate_weak_user_VLC_data_rate(double channel_gain ,double strong_user_power, double weak_user_power) {
-    double data_rate = VLC_AP_Bandwidth / (2 * pairing_count);
-    double noise = VLC_AP_Bandwidth / (pairing_count) * Nl * pow(10, 6); // A^2/Hz -> A^2/MHz
-    double c = 1 / (2 * M_PI);
-    double signal = c;
-    double interference = c;
+double calculate_weak_user_VLC_data_rate(long double channel_gain ,long double strong_user_power, long double weak_user_power) {
+    long double data_rate = VLC_AP_Bandwidth / (2.0 * (long double)pairing_count);
+    long double noise = VLC_AP_Bandwidth / (long double)(pairing_count) * Nl * 1e6; // A^2/Hz -> A^2/MHz
+    long double c = 1.0 / (2.0 * M_PI);
+    long double signal = c;
+    long double interference = c;
 
-    interference *= pow(VLC_optical_to_electric_factor, 2);
-    interference *= pow(VLC_electric_to_optical_factor, 2);
-    interference *= pow(channel_gain, 2);
+    interference *= pow(VLC_optical_to_electric_factor, 2.0);
+    interference *= pow(VLC_electric_to_optical_factor, 2.0);
+    interference *= pow(channel_gain, 2.0);
     interference *= strong_user_power;
 
 
-    signal *= pow(VLC_optical_to_electric_factor, 2);
-    signal *= pow(VLC_electric_to_optical_factor, 2);
-    signal *= pow(channel_gain, 2);
+    signal *= pow(VLC_optical_to_electric_factor, 2.0);
+    signal *= pow(VLC_electric_to_optical_factor, 2.0);
+    signal *= pow(channel_gain, 2.0);
     signal *= weak_user_power;
 
-    data_rate*= log2(1 + (signal / (noise + interference)));
+
+    data_rate*= log2(1.0 + (signal / (noise + interference)));
 
 
     return data_rate;

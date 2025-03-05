@@ -16,6 +16,8 @@ simulation for https://ieeexplore.ieee.org/document/9259258
 
 */
 
+void init_ref1_algo();
+
 void ref1_algo();
 
 #endif // REF1_ALGO_H_INCLUDED

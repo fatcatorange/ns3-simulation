@@ -51,7 +51,37 @@ double calculate_weak_user_require_power(long double strong_user_power, int weak
 
 }
 
-double algo2_calculate_pair_cost(int weak_user, int strong_user) {
+double calculate_weak_user_RF_require_power(long double strong_user_power, int weak_user, int strong_user, int hybrid_user_count) {
+    long double strong_user_channel_gain = Channel_gain_matrix[strong_user][0];
+    long double RF_upper_bound = calculate_RF_data_rate(strong_user_power, UE_node_list[strong_user]->node, UE_node_list[weak_user]->node);
+
+    long double weak_user_minimum_rate = maximum_requirement_matrix[weak_user] * minimum_satisfaction_matrix[weak_user];
+
+    // can't satisfy weak user
+    if (weak_user_minimum_rate > RF_upper_bound) {
+        return -1;
+    }
+
+    long double weak_user_power = pow(2.0L, (2.0L * now_pair_count * weak_user_minimum_rate / VLC_AP_Bandwidth)) - 1.0;
+
+    long double c = 1.0 / (2.0L * M_PI);
+    long double v = pow(VLC_optical_to_electric_factor, 2.0L);
+    long double ro = pow(VLC_electric_to_optical_factor, 2.0L);
+
+    long double denominator = (c * powl(v, 2.0L) * powl(ro, 2.0L) * powl(strong_user_channel_gain, 2.0L));
+    long double numerator = ((VLC_AP_Bandwidth * Nl * 1e6L) / now_pair_count) + (denominator * strong_user_power);
+    weak_user_power *= numerator / denominator;
+
+
+    //std::cout<<"check weak:" <<calculate_weak_user_VLC_data_rate(weak_user_channel_gain, strong_user_power, weak_user_power)<<" "<<weak_user_minimum_rate<<std::endl;
+    return weak_user_power;
+
+
+
+
+}
+
+double calculate_strong_user_require_power(int strong_user) {
     double strong_user_channel_gain = Channel_gain_matrix[strong_user][0];
     double strong_user_minimum_rate = maximum_requirement_matrix[strong_user] * minimum_satisfaction_matrix[strong_user];
     double strong_user_power = VLC_AP_Bandwidth * Nl * pow(10, 6);
@@ -63,8 +93,14 @@ double algo2_calculate_pair_cost(int weak_user, int strong_user) {
     strong_user_power/=(now_pair_count * c * v * ro * pow(strong_user_channel_gain, 2) );
     strong_user_power*=(pow(2, (2 * now_pair_count * strong_user_minimum_rate) / VLC_AP_Bandwidth) - 1);
 
+    return strong_user_power;
+}
 
-    std::cout<<"check:"<<calculate_strong_user_data_rate(strong_user_channel_gain, strong_user_power)<<" "<<strong_user_minimum_rate<<std::endl;
+double algo2_calculate_pair_cost(int weak_user, int strong_user) {
+
+    double strong_user_power = calculate_strong_user_require_power(strong_user);
+
+    //std::cout<<"check:"<<calculate_strong_user_data_rate(strong_user_channel_gain, strong_user_power)<<" "<<strong_user_minimum_rate<<std::endl;
     double weak_user_power = calculate_weak_user_require_power(strong_user_power, weak_user);
     return strong_user_power + weak_user_power;
 }
@@ -73,6 +109,7 @@ double algo2_calculate_pair_cost(int weak_user, int strong_user) {
 void algo2_construce_cost_matrix(vector<vector<double>> &cost_matrix) {
     double maxi = 0;
     for(int i = 0; i < now_user / 2;i++) {
+        relay_user = i;
         for (int j = 0;j < now_user / 2;j++) {
             cost_matrix[i][j] = algo2_calculate_pair_cost(algo2_sorted_ue_list[i].second, algo2_sorted_ue_list[(now_user / 2) + j].second); // weak, strong
             //std::cout<<cost_matrix[i][j]<<std::endl;
@@ -113,8 +150,71 @@ void algo2_user_pairing() {
     for (int i = 0;i < algo2_match.size();i++) {
         int wu = algo2_sorted_ue_list[i].second;
         int su = algo2_sorted_ue_list[algo2_match[i] + (now_user / 2)].second;
-        std::cout<<i<<" "<<Channel_gain_matrix[wu][0]<<" "<<algo2_match[i] + (now_user / 2)<<" "<<Channel_gain_matrix[su][0]<<std::endl;
+        //std::cout<<i<<" "<<Channel_gain_matrix[wu][0]<<" "<<algo2_match[i] + (now_user / 2)<<" "<<Channel_gain_matrix[su][0]<<std::endl;
         pairing_matrix[wu][su] = 1;
+    }
+
+}
+
+double calculate_save_power(int weak_user, int strong_user, int hybrid_user_count) {
+    double strong_user_power = calculate_strong_user_require_power(strong_user);
+    double weak_user_power_using_VLC = calculate_weak_user_require_power(strong_user_power, weak_user);
+    double weak_user_power_using_RF = calculate_weak_user_RF_require_power(strong_user_power, weak_user, strong_user, hybrid_user_count);
+
+    if (weak_user_power_using_RF < weak_user_power_using_VLC) {
+        return -1;
+    }
+    return weak_user_power_using_RF - weak_user_power_using_VLC;
+}
+
+void algo2_link_selection() {
+    vector<vector<int>> algo2_link_selection_table(now_user / 2 + 1, vector<int>(now_user / 2, 0));
+    for(int hybrid_user = 0 ;hybrid_user < algo2_link_selection_table.size();hybrid_user++) {
+        priority_queue<pair<double, int>> pq;
+        relay_user = hybrid_user;
+        for(int i = 0;i < now_user / 2;i++) {
+            int wu = algo2_sorted_ue_list[i].second;
+            int su = algo2_sorted_ue_list[algo2_match[i] + (now_user / 2)].second;
+            double saved_power = calculate_save_power(wu, su, hybrid_user);
+            pq.push({saved_power,i});
+        }
+
+        for(int i = 0;i < hybrid_user;i++) {
+            int user = pq.top().second;
+
+            algo2_link_selection_table[hybrid_user][user] = (pq.top().first > 0) ? 1 : -1;
+            pq.pop();
+        }
+    }
+
+    double maximum_saved_power = 0;
+    int maximum_saved_index = 0;
+    for(int i = 1;i < now_user / 2 + 1;i++) {
+        relay_user = i;
+        double now_saved_power = 0;
+        for(int j = 0;j < algo2_link_selection_table[i].size();j++) {
+            if (algo2_link_selection_table[i][j] < 0) {
+                now_saved_power = -1;
+                break;
+            }
+            int wu = algo2_sorted_ue_list[i].second;
+            int su = algo2_sorted_ue_list[algo2_match[i] + (now_user / 2)].second;
+            double saved_power = calculate_save_power(wu, su, i);
+            now_saved_power+=saved_power;
+        }
+
+        if (now_saved_power > maximum_saved_power) {
+            maximum_saved_index = i;
+        }
+
+        std::cout<<"maximum index"<<maximum_saved_index<<std::endl;
+        relay_user = maximum_saved_index;
+
+        for (int i = 0;i < algo2_link_selection_table[maximum_saved_index].size();i++) {
+            if (algo2_link_selection_table[maximum_saved_index][i] == 1) {
+                link_selection_matrix[algo2_sorted_ue_list[i].second] = 1;
+            }
+        }
     }
 
 }

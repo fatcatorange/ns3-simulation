@@ -140,7 +140,7 @@ double calculate_weak_user_VLC_data_rate(long double channel_gain ,long double s
 
     data_rate*= log2(1.0 + (signal / (noise + interference)));
 
-
+    //std::cout<<"calculate week:"<<channel_gain<<" "<<data_rate<<std::endl;
     return data_rate;
 }
 

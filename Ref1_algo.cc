@@ -296,8 +296,8 @@ void ref1_user_pairing() {
 
     HungAlgo.Solve(cost_matrix, match);
 
-    for (unsigned int x = 0; x < cost_matrix.size(); x++)
-		std::cout << x << "," << match[x] << "\t";
+    //for (unsigned int x = 0; x < cost_matrix.size(); x++)
+		//std::cout << x << "," << match[x] << "\t";
 
     for (int i = 0;i < match.size();i++) {
         //std::cout<<"weak user "<<sorted_ue_list[i].second<<" pairing with strong user"<<sorted_ue_list[i + (UE / 2)].second<<std::endl;
@@ -315,23 +315,24 @@ double calculate_hybrid_link_bonus(int strong_user, int weak_user) {
     double VLC_rate = std::min(calculate_weak_user_VLC_data_rate(Channel_gain_matrix[strong_user][0], power_allocation_matrix[strong_user], power_allocation_matrix[weak_user]),
                                      calculate_RF_data_rate(Channel_gain_matrix[strong_user][0], UE_node_list[strong_user]->node, UE_node_list[weak_user]->node));
     double dir_rate = calculate_weak_user_VLC_data_rate(Channel_gain_matrix[weak_user][0], power_allocation_matrix[strong_user], power_allocation_matrix[weak_user]);
+    //std::cout<<"bonus:"<<relay_user<<" "<<VLC_rate<<" "<<dir_rate<<std::endl;
     return VLC_rate - dir_rate;
 }
 
 double calculate_link_table_pair_rate(int strong_user, int weak_user, int pair_link) {
     double rate = calculate_strong_user_data_rate(Channel_gain_matrix[strong_user][0], power_allocation_matrix[strong_user]);
-    if (pair_link == 0) {
+    if (pair_link == 1) {
         rate+=std::min(calculate_weak_user_VLC_data_rate(Channel_gain_matrix[strong_user][0], power_allocation_matrix[strong_user], power_allocation_matrix[weak_user]),
                         calculate_RF_data_rate(Channel_gain_matrix[strong_user][0], UE_node_list[strong_user]->node, UE_node_list[weak_user]->node));
     }
     else {
         rate+=calculate_weak_user_VLC_data_rate(Channel_gain_matrix[weak_user][0], power_allocation_matrix[strong_user], power_allocation_matrix[weak_user]);
     }
-
+    //std::cout<<Channel_gain_matrix[weak_user][0]<<" "<<Channel_gain_matrix[strong_user][0]<<" "<<pair_link<<std::endl;
     //std::cout<<"dir:"<<calculate_weak_user_VLC_data_rate(Channel_gain_matrix[weak_user][0], power_allocation_matrix[strong_user], power_allocation_matrix[weak_user])<<std::endl;
     //std::cout<<"hybrid:"<<std::min(calculate_weak_user_VLC_data_rate(Channel_gain_matrix[strong_user][0], power_allocation_matrix[strong_user], power_allocation_matrix[weak_user]),
                  //       calculate_RF_data_rate(Channel_gain_matrix[strong_user][0], UE_node_list[strong_user]->node, UE_node_list[weak_user]->node))<<std::endl;
-
+    //std::cout<<"rate: "<<rate<<std::endl;
     return rate;
 }
 
@@ -341,7 +342,9 @@ void ref1_link_selection(std::vector<std::pair<int, int>> &tmp_pairing) {
         std::priority_queue<pair<double, int>> rate_pq;
         for(int j = 0;j < tmp_pairing.size(); j++) {
             relay_user = hybrid_user;
-            rate_pq.push({calculate_hybrid_link_bonus(tmp_pairing[j].first, tmp_pairing[j].second), j});
+            double bonus = calculate_hybrid_link_bonus(tmp_pairing[j].first, tmp_pairing[j].second);
+            //std::cout<<"bonus: "<<j<<" "<<bonus<<std::endl;
+            rate_pq.push({bonus, j});
         }
         for(int i = 0;i < hybrid_user;i++) {
             int user = rate_pq.top().second;
@@ -352,6 +355,7 @@ void ref1_link_selection(std::vector<std::pair<int, int>> &tmp_pairing) {
     double maximum_rate = 0;
     int maximum_index = 0;
     for(int i = 0;i < link_selection_table.size();i++) {
+        relay_user = i;
         double now_rate = 0;
         for(int j = 0;j < link_selection_table[i].size();j++) {
             now_rate+=calculate_link_table_pair_rate(tmp_pairing[j].first, tmp_pairing[j].second, link_selection_table[i][j]);
@@ -363,7 +367,7 @@ void ref1_link_selection(std::vector<std::pair<int, int>> &tmp_pairing) {
         }
 
     }
-    std::cout<<"maximum index"<<maximum_index<<std::endl;
+    //std::cout<<"maximum index"<<maximum_index<<std::endl;
     relay_user = maximum_index;
 
     for (int i = 0;i < link_selection_table[maximum_index].size();i++) {

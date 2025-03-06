@@ -146,14 +146,17 @@ void calculate_throughput() {
     generate_user_requirement();
     print_user_requirement();
 
+    /*
     init_ref1_algo();
     algorithm2();
-    /*
+    */
 
+
+    ref1_algo();
     print_power_allocation_matrix();
     calculate_data_rate_matrix();
     print_data_rate_matrix();
-    */
+
 
 
 

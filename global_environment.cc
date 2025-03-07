@@ -1,6 +1,6 @@
 #include "global_environment.h"
 
-int UE = 10;
+int UE = 2;
 int pairing_count = UE / 2;
 
 double room_size_x = 5;
@@ -54,8 +54,8 @@ then their minimum satisfied data rate is calculated as:
 
 40 * 0.7 = 28
 */
-long double minimum_data_rate_requirement = 10;
-long double maximum_data_rate_requirement = 50;
+long double minimum_data_rate_requirement = 30;
+long double maximum_data_rate_requirement = 40;
 
 
 // 0 = https://ieeexplore.ieee.org/document/9259258 paper propose,

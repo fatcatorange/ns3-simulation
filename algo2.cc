@@ -31,7 +31,7 @@ int now_user = UE;
 int now_pair_count = UE / 2;
 
 double calculate_weak_user_require_power(long double strong_user_power, int weak_user) {
-    std::cout<<strong_user_power<<std::endl;
+    //std::cout<<strong_user_power<<std::endl;
     //strong_user_power *= 1e3;
     long double weak_user_channel_gain = Channel_gain_matrix[weak_user][0];
     long double weak_user_minimum_rate = maximum_requirement_matrix[weak_user] * minimum_satisfaction_matrix[weak_user];
@@ -46,7 +46,7 @@ double calculate_weak_user_require_power(long double strong_user_power, int weak
     weak_user_power *= numerator / denominator;
 
 
-    std::cout<<"check weak:" <<calculate_weak_user_VLC_data_rate(weak_user_channel_gain, strong_user_power, weak_user_power)<<" "<<weak_user_minimum_rate<<std::endl;
+    //std::cout<<"check weak:" <<calculate_weak_user_VLC_data_rate(weak_user_channel_gain, strong_user_power, weak_user_power)<<" "<<weak_user_minimum_rate<<std::endl;
     return weak_user_power;
 
 }
@@ -56,9 +56,10 @@ double calculate_weak_user_RF_require_power(long double strong_user_power, int w
     long double RF_upper_bound = calculate_RF_data_rate(strong_user_power, UE_node_list[strong_user]->node, UE_node_list[weak_user]->node);
 
     long double weak_user_minimum_rate = maximum_requirement_matrix[weak_user] * minimum_satisfaction_matrix[weak_user];
-
+    //std::cout<<"RF upper bound: "<<relay_user<<" "<<RF_upper_bound<<std::endl;
     // can't satisfy weak user
     if (weak_user_minimum_rate > RF_upper_bound) {
+
         return -1;
     }
 
@@ -161,10 +162,11 @@ double calculate_save_power(int weak_user, int strong_user, int hybrid_user_coun
     double weak_user_power_using_VLC = calculate_weak_user_require_power(strong_user_power, weak_user);
     double weak_user_power_using_RF = calculate_weak_user_RF_require_power(strong_user_power, weak_user, strong_user, hybrid_user_count);
 
-    if (weak_user_power_using_RF < weak_user_power_using_VLC) {
+    if (weak_user_power_using_RF > weak_user_power_using_VLC || weak_user_power_using_RF < 0) {
         return -1;
     }
-    return weak_user_power_using_RF - weak_user_power_using_VLC;
+    //std::cout<<"VLC: "<<weak_user_power_using_VLC<<" RF: "<<weak_user_power_using_RF<<std::endl;
+    return weak_user_power_using_VLC - weak_user_power_using_RF;
 }
 
 void algo2_link_selection() {
@@ -176,6 +178,7 @@ void algo2_link_selection() {
             int wu = algo2_sorted_ue_list[i].second;
             int su = algo2_sorted_ue_list[algo2_match[i] + (now_user / 2)].second;
             double saved_power = calculate_save_power(wu, su, hybrid_user);
+            //std::cout<<"saved:"<<saved_power<<std::endl;
             pq.push({saved_power,i});
         }
 
@@ -197,24 +200,36 @@ void algo2_link_selection() {
                 now_saved_power = -1;
                 break;
             }
-            int wu = algo2_sorted_ue_list[i].second;
-            int su = algo2_sorted_ue_list[algo2_match[i] + (now_user / 2)].second;
-            double saved_power = calculate_save_power(wu, su, i);
-            now_saved_power+=saved_power;
-        }
-
-        if (now_saved_power > maximum_saved_power) {
-            maximum_saved_index = i;
-        }
-
-        std::cout<<"maximum index"<<maximum_saved_index<<std::endl;
-        relay_user = maximum_saved_index;
-
-        for (int i = 0;i < algo2_link_selection_table[maximum_saved_index].size();i++) {
-            if (algo2_link_selection_table[maximum_saved_index][i] == 1) {
-                link_selection_matrix[algo2_sorted_ue_list[i].second] = 1;
+            else if (algo2_link_selection_table[i][j] == 1) {
+                int wu = algo2_sorted_ue_list[j].second;
+                int su = algo2_sorted_ue_list[algo2_match[j] + (now_user / 2)].second;
+                double saved_power = calculate_save_power(wu, su, j);
+                if (saved_power < 0) {
+                    now_saved_power = -1;
+                    break;
+                }
+                now_saved_power+=saved_power;
             }
         }
+
+        //std::cout<<"saved power: "<<i<<" "<<now_saved_power<<std::endl;
+        if (now_saved_power > maximum_saved_power) {
+            maximum_saved_index = i;
+            maximum_saved_power = now_saved_power;
+        }
+    }
+
+    //std::cout<<"maximum index"<<maximum_saved_index<<std::endl;
+    relay_user = maximum_saved_index;
+
+    for (int i = 0;i < algo2_link_selection_table[maximum_saved_index].size();i++) {
+        if (algo2_link_selection_table[maximum_saved_index][i] == 1) {
+            link_selection_matrix[algo2_sorted_ue_list[i].second] = 1;
+        }
+    }
+
+    for(int i = 0;i < link_selection_matrix.size();i++) {
+        //cout<<link_selection_matrix[i]<<" ";
     }
 
 }
@@ -228,7 +243,38 @@ void algo2_list_user() {
     sort(algo2_sorted_ue_list.begin(), algo2_sorted_ue_list.end());
 }
 
+//satisfy all user or not
+bool algo2_power_allocation(double &now_power) {
+
+    for(int i = 0;i < algo2_match.size();i++) {
+        int wu = algo2_sorted_ue_list[i].second;
+        int su = algo2_sorted_ue_list[algo2_match[i] + (now_user / 2)].second;
+        double strong_user_power = calculate_strong_user_require_power(su);
+        double weak_user_power = link_selection_matrix[i] == 0 ? calculate_weak_user_require_power(strong_user_power, wu) :
+            calculate_weak_user_RF_require_power(strong_user_power, wu, su, relay_user);
+        double require_power = strong_user_power + weak_user_power;
+        std::cout<<require_power<<" "<<total_power;
+        if (now_power >= require_power) {
+            now_power-=require_power;
+            power_allocation_matrix[wu] = weak_user_power;
+            power_allocation_matrix[su] = strong_user_power;
+
+        long double weak_user_minimum_rate = maximum_requirement_matrix[wu] * minimum_satisfaction_matrix[wu];
+        std::cout<<"check weak:" <<calculate_weak_user_VLC_data_rate(Channel_gain_matrix[wu][0], strong_user_power, weak_user_power)<<" "<<weak_user_minimum_rate<<std::endl;
+
+        }
+        else {
+            return false;
+        }
+    }
+    return true;
+}
+
 void algorithm2() {
     algo2_list_user();
     algo2_user_pairing();
+    algo2_link_selection();
+
+    double now_power = total_power;
+    algo2_power_allocation(now_power);
 }

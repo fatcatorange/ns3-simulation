@@ -22,7 +22,7 @@ std::vector<UE_node*> UE_node_list;
 std::vector<std::vector<double>> Channel_gain_matrix(UE,std::vector<double>(VLC_AP));
 std::vector<std::vector<int>> pairing_matrix(UE, std::vector<int>(UE)); // if i, j == 1 => i and j are pairing
 std::vector<std::vector<double>> data_rate_matrix(UE,std::vector<double>(VLC_AP));
-std::vector<double> power_allocation_matrix(UE, (total_power / UE)); // power for every users
+std::vector<long double> power_allocation_matrix(UE, (total_power / UE)); // power for every users
 std::vector<int> link_selection_matrix(UE, 0); // 0 = direct link 1 = relay link
 std::vector<double> minimum_satisfaction_matrix(UE, 0);
 std::vector<double> maximum_requirement_matrix(UE, 0);

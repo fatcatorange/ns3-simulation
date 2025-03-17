@@ -30,24 +30,112 @@ const double INF = std::numeric_limits<double>::max();
 int now_user = UE;
 int now_pair_count = UE / 2;
 
-double calculate_weak_user_require_power(long double strong_user_power, int weak_user) {
-    //std::cout<<strong_user_power<<std::endl;
-    //strong_user_power *= 1e3;
+double correction_weak_user_power(long double strong_user_power, int weak_user, double origin_power) {
+    long double left = origin_power;
     long double weak_user_channel_gain = Channel_gain_matrix[weak_user][0];
     long double weak_user_minimum_rate = maximum_requirement_matrix[weak_user] * minimum_satisfaction_matrix[weak_user];
-    long double weak_user_power = pow(2.0L, (2.0L * now_pair_count * weak_user_minimum_rate / VLC_AP_Bandwidth)) - 1.0;
+
+    long double maximum_rate = calculate_weak_user_VLC_data_rate(weak_user_channel_gain, strong_user_power, total_power);
+
+    if (maximum_rate < weak_user_minimum_rate) {
+        return total_power;
+    }
+
+    long double weak_user_power = pow(2.0L, (2.0L * now_pair_count * maximum_rate / VLC_AP_Bandwidth));
+
 
     long double c = 1.0 / (2.0L * M_PI);
     long double v = pow(VLC_optical_to_electric_factor, 2.0L);
     long double ro = pow(VLC_electric_to_optical_factor, 2.0L);
+    long double denominator = (c * powl(v, 2.0L) * powl(ro, 2.0L) * powl(weak_user_channel_gain, 2.0L)) ;
+    long double numerator = ((VLC_AP_Bandwidth * Nl * 1e6L) / (long double)now_pair_count ) + (denominator * strong_user_power);
+    //std::cout<<"nu:"<<numerator<<" "<<denominator<<std::endl;
+    weak_user_power *= numerator;
+    weak_user_power /= denominator;
+    weak_user_power -= (numerator / denominator);
 
-    long double denominator = (c * powl(v, 2.0L) * powl(ro, 2.0L) * powl(weak_user_channel_gain, 2.0L));
-    long double numerator = ((VLC_AP_Bandwidth * Nl * 1e6L) / now_pair_count) + (denominator * strong_user_power);
-    weak_user_power *= numerator / denominator;
+    long double right = weak_user_power;
+    while(right - left > 1e-15) {
+        long double mid = (right + left) / 2;
+        long double now_rate = calculate_weak_user_VLC_data_rate(weak_user_channel_gain, strong_user_power, mid);
+        if (now_rate > weak_user_minimum_rate) {
+            weak_user_power = mid;
+            right = mid;
+        }
+        else {
+            left = mid;
+        }
 
+    }
+    //std::cout<<"check weak:" <<calculate_weak_user_VLC_data_rate(weak_user_channel_gain, strong_user_power, weak_user_power)<<" "<<weak_user_minimum_rate <<std::endl;
 
-    //std::cout<<"check weak:" <<calculate_weak_user_VLC_data_rate(weak_user_channel_gain, strong_user_power, weak_user_power)<<" "<<weak_user_minimum_rate<<std::endl;
     return weak_user_power;
+}
+
+double correction_weak_user_RF_power(long double strong_user_power, int weak_user, int strong_user, double origin_power) {
+    long double left = origin_power;
+    long double strong_user_channel_gain = Channel_gain_matrix[strong_user][0];
+    long double weak_user_minimum_rate = maximum_requirement_matrix[weak_user] * minimum_satisfaction_matrix[weak_user];
+
+    long double maximum_rate = calculate_RF_data_rate(strong_user_power, UE_node_list[strong_user]->node, UE_node_list[weak_user]->node);;
+
+    if (maximum_rate < weak_user_minimum_rate) {
+        return total_power;
+    }
+
+    long double weak_user_power = pow(2.0L, (2.0L * now_pair_count * maximum_rate / VLC_AP_Bandwidth));
+
+
+    long double c = 1.0 / (2.0L * M_PI);
+    long double v = pow(VLC_optical_to_electric_factor, 2.0L);
+    long double ro = pow(VLC_electric_to_optical_factor, 2.0L);
+    long double denominator = (c * powl(v, 2.0L) * powl(ro, 2.0L) * powl(strong_user_channel_gain, 2.0L)) ;
+    long double numerator = ((VLC_AP_Bandwidth * Nl * 1e6L) / (long double)now_pair_count ) + (denominator * strong_user_power);
+    //std::cout<<"nu:"<<numerator<<" "<<denominator<<std::endl;
+    weak_user_power *= numerator;
+    weak_user_power /= denominator;
+    weak_user_power -= (numerator / denominator);
+
+    long double right = weak_user_power;
+    while(right - left > 1e-15) {
+        long double mid = (right + left) / 2;
+        long double now_rate = calculate_weak_user_VLC_data_rate(strong_user_channel_gain, strong_user_power, mid);
+        if (now_rate > weak_user_minimum_rate) {
+            weak_user_power = mid;
+            right = mid;
+        }
+        else {
+            left = mid;
+        }
+
+    }
+    //std::cout<<"check weak:" <<calculate_weak_user_VLC_data_rate(weak_user_channel_gain, strong_user_power, weak_user_power)<<" "<<weak_user_minimum_rate <<std::endl;
+
+    return weak_user_power;
+}
+
+double calculate_weak_user_require_power(long double strong_user_power, int weak_user) {
+    now_pair_count *= 20;
+    long double weak_user_channel_gain = Channel_gain_matrix[weak_user][0];
+    long double weak_user_minimum_rate = maximum_requirement_matrix[weak_user] * minimum_satisfaction_matrix[weak_user];
+    long double weak_user_power = pow(2.0L, (2.0L * now_pair_count * weak_user_minimum_rate / VLC_AP_Bandwidth));
+    //std::cout<<(2.0L * now_pair_count * weak_user_minimum_rate / VLC_AP_Bandwidth)<<std::endl;
+    long double c = 1.0 / (2.0L * M_PI);
+    long double v = pow(VLC_optical_to_electric_factor, 2.0L);
+    long double ro = pow(VLC_electric_to_optical_factor, 2.0L);
+    //std::cout<<"wc:"<<weak_user_channel_gain<<" "<<pow(weak_user_channel_gain, 2)<<std::endl;
+    long double denominator = (c * powl(v, 2.0L) * powl(ro, 2.0L) * powl(weak_user_channel_gain, 2.0L)) ;
+    long double numerator = ((VLC_AP_Bandwidth * Nl * 1e6L) / (long double)now_pair_count / 20) + (denominator * strong_user_power);
+    //std::cout<<"nu:"<<numerator<<" "<<denominator<<std::endl;
+    weak_user_power *= numerator;
+    weak_user_power /= pow(2.0L, (2.0L * (long double)now_pair_count * weak_user_minimum_rate * 0.95L / VLC_AP_Bandwidth));
+    weak_user_power /= denominator;
+    weak_user_power -= (numerator / denominator);
+
+    //std::cout<<"check weak:" <<calculate_weak_user_VLC_data_rate(weak_user_channel_gain, strong_user_power, weak_user_power)<<" "<<weak_user_minimum_rate / 2 <<std::endl;
+    now_pair_count = now_user / 2;
+
+    return correction_weak_user_power(strong_user_power, weak_user, weak_user_power);
 
 }
 
@@ -74,11 +162,9 @@ double calculate_weak_user_RF_require_power(long double strong_user_power, int w
     weak_user_power *= numerator / denominator;
 
 
+
     //std::cout<<"check weak:" <<calculate_weak_user_VLC_data_rate(weak_user_channel_gain, strong_user_power, weak_user_power)<<" "<<weak_user_minimum_rate<<std::endl;
-    return weak_user_power;
-
-
-
+    return correction_weak_user_RF_power(strong_user_power, weak_user, strong_user, weak_user_power);
 
 }
 
@@ -250,17 +336,20 @@ bool algo2_power_allocation(double &now_power) {
         int wu = algo2_sorted_ue_list[i].second;
         int su = algo2_sorted_ue_list[algo2_match[i] + (now_user / 2)].second;
         double strong_user_power = calculate_strong_user_require_power(su);
-        double weak_user_power = link_selection_matrix[i] == 0 ? calculate_weak_user_require_power(strong_user_power, wu) :
+        long double weak_user_power = link_selection_matrix[i] == 0 ? calculate_weak_user_require_power(strong_user_power, wu) :
             calculate_weak_user_RF_require_power(strong_user_power, wu, su, relay_user);
-        double require_power = strong_user_power + weak_user_power;
-        std::cout<<require_power<<" "<<total_power;
+        long double require_power = strong_user_power + weak_user_power;
+        //std::cout<<require_power<<" "<<total_power<<std::endl;
         if (now_power >= require_power) {
             now_power-=require_power;
             power_allocation_matrix[wu] = weak_user_power;
             power_allocation_matrix[su] = strong_user_power;
 
-        long double weak_user_minimum_rate = maximum_requirement_matrix[wu] * minimum_satisfaction_matrix[wu];
-        std::cout<<"check weak:" <<calculate_weak_user_VLC_data_rate(Channel_gain_matrix[wu][0], strong_user_power, weak_user_power)<<" "<<weak_user_minimum_rate<<std::endl;
+            long double weak_user_minimum_rate = maximum_requirement_matrix[wu] * minimum_satisfaction_matrix[wu];
+            if (link_selection_matrix[i] == 0)
+                std::cout<<"check weak:" <<calculate_weak_user_VLC_data_rate(Channel_gain_matrix[wu][0], strong_user_power, weak_user_power)<<" "<<weak_user_minimum_rate<<std::endl;
+            else
+                std::cout<<"check weak:" <<calculate_weak_user_VLC_data_rate(Channel_gain_matrix[su][0], strong_user_power, weak_user_power)<<" "<<weak_user_minimum_rate<<std::endl;
 
         }
         else {
@@ -270,11 +359,20 @@ bool algo2_power_allocation(double &now_power) {
     return true;
 }
 
+void IRS_assignment() {}
+
 void algorithm2() {
     algo2_list_user();
     algo2_user_pairing();
     algo2_link_selection();
 
+    for(int i = 0;i < link_selection_matrix.size();i++) {
+        std::cout<<link_selection_matrix[i]<<" ";
+    }
+    std::cout<<std::endl;
+
     double now_power = total_power;
     algo2_power_allocation(now_power);
+
+
 }

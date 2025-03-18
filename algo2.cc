@@ -329,8 +329,8 @@ void algo2_list_user() {
     sort(algo2_sorted_ue_list.begin(), algo2_sorted_ue_list.end());
 }
 
-//satisfy all user or not
-bool algo2_power_allocation(double &now_power) {
+//return: satisfied user count
+int algo2_power_allocation(double &now_power) {
 
     for(int i = 0;i < algo2_match.size();i++) {
         int wu = algo2_sorted_ue_list[i].second;
@@ -345,21 +345,25 @@ bool algo2_power_allocation(double &now_power) {
             power_allocation_matrix[wu] = weak_user_power;
             power_allocation_matrix[su] = strong_user_power;
 
+            /*
             long double weak_user_minimum_rate = maximum_requirement_matrix[wu] * minimum_satisfaction_matrix[wu];
             if (link_selection_matrix[i] == 0)
                 std::cout<<"check weak:" <<calculate_weak_user_VLC_data_rate(Channel_gain_matrix[wu][0], strong_user_power, weak_user_power)<<" "<<weak_user_minimum_rate<<std::endl;
             else
                 std::cout<<"check weak:" <<calculate_weak_user_VLC_data_rate(Channel_gain_matrix[su][0], strong_user_power, weak_user_power)<<" "<<weak_user_minimum_rate<<std::endl;
+            */
 
         }
         else {
-            return false;
+            return i + 1;
         }
     }
-    return true;
+    return algo2_match.size();
 }
 
-void IRS_assignment() {}
+void IRS_assignment(double now_power, int satisfied_user) {
+
+}
 
 void algorithm2() {
     algo2_list_user();
@@ -372,7 +376,7 @@ void algorithm2() {
     std::cout<<std::endl;
 
     double now_power = total_power;
-    algo2_power_allocation(now_power);
+    int satisfied_user = algo2_power_allocation(now_power);
 
 
 }

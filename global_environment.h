@@ -60,6 +60,10 @@ extern long double angle_of_LOS_arrival;
 extern long double fill_factor;
 extern long double thermal_voltage;
 
+extern int IRS_num;
+extern int IRS_per_row;
+extern double IRS_coefficient;
+
 extern long double minimum_satisfaction;
 
 extern long double minimum_data_rate_requirement;

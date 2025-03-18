@@ -40,6 +40,31 @@ double calculateDistance(Ptr<Node> AP,Ptr<Node> UE)
     return AP_mobility->GetDistanceFrom(UE_mobility);
 }
 
+double Estimate_IRS_channel_gain(Ptr<Node> AP,Ptr<Node> UE, Ptr<Node> IRS) {
+
+    double lambertian_coefficient = (-1) / (log(cos(DegtoRad(VLC_PHI_half))));
+
+    double dist_AP_IRS = calculateDistance(AP, IRS);
+    double dist_IRS_UE = calculateDistance(IRS, UE);
+
+    double irradiance_angle = Get_Incidence_Angle_AP_UE(AP, IRS);
+    double incident_angle = Get_Incidence_Angle_AP_UE(IRS, UE);
+
+    if(RadtoDeg(incident_angle) >= VLC_field_of_view)
+    {
+        return 0;
+    }
+
+    double channel_gain = IRS_coefficient * VLC_receiver_area * (lambertian_coefficient + 1)/(2*M_PI*pow(dist_AP_IRS + dist_IRS_UE,2));
+
+    channel_gain *= pow(cos(irradiance_angle), lambertian_coefficient);
+
+    channel_gain *= VLC_filter_gain * VLC_concentrator_gain;
+
+    channel_gain *= cos(incident_angle);
+
+    return channel_gain;
+}
 
 double Estimate_one_VLC_Channel_Gain(Ptr<Node> VLC_AP,Ptr<Node> UE){
 

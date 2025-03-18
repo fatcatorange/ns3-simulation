@@ -47,6 +47,13 @@ long double minimum_satisfaction = 0.5;
 
 
 /*
+IRS related
+*/
+int IRS_num = 300;
+int IRS_per_row = 30;
+double IRS_coefficient = 0.95;
+
+/*
 These two variables define the range of maximum data rates.
 For example, if a user's minimum satisfaction level is 0.7
 and their maximum data rate falls within this range (e.g., 40),

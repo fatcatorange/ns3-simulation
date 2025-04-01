@@ -40,6 +40,8 @@ void pair_fairness_write_file();
 
 extern std::vector<AP_node*> AP_node_list;
 extern std::vector<UE_node*> UE_node_list;
+extern NodeContainer IRS_nodes;
+
 
 extern std::vector<std::vector<double>> Channel_gain_matrix;
 extern std::vector<double> IRS_channel_gain_matrix;

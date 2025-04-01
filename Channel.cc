@@ -50,16 +50,14 @@ double Estimate_IRS_channel_gain(Ptr<Node> AP,Ptr<Node> UE, Ptr<Node> IRS) {
     double irradiance_angle = Get_Incidence_Angle_AP_UE(AP, IRS);
     double incident_angle = Get_Incidence_Angle_AP_UE(IRS, UE);
 
-    if(RadtoDeg(incident_angle) >= VLC_field_of_view)
-    {
-        return 0;
-    }
 
     double channel_gain = IRS_coefficient * VLC_receiver_area * (lambertian_coefficient + 1)/(2*M_PI*pow(dist_AP_IRS + dist_IRS_UE,2));
 
     channel_gain *= pow(cos(irradiance_angle), lambertian_coefficient);
 
-    channel_gain *= VLC_filter_gain * VLC_concentrator_gain;
+    channel_gain *= VLC_filter_gain;
+
+    channel_gain *= pow(VLC_refractive_index , 2) / pow(sin(DegtoRad(VLC_field_of_view)) , 2);
 
     channel_gain *= cos(incident_angle);
 

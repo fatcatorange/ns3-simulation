@@ -5,7 +5,7 @@ int pairing_count = UE / 2;
 
 double room_size_x = 5;
 double room_size_y = 5;
-double room_size_z = 3;
+double room_size_z = 5;
 double simulation_time = 10.0;
 
 int VLC_AP = 1; // VLC AP number
@@ -49,7 +49,7 @@ long double minimum_satisfaction = 0.5;
 /*
 IRS related
 */
-int IRS_num = 300;
+int IRS_num = 100;
 int IRS_per_row = 30;
 double IRS_coefficient = 0.95;
 
@@ -61,8 +61,8 @@ then their minimum satisfied data rate is calculated as:
 
 40 * 0.7 = 28
 */
-long double minimum_data_rate_requirement = 5;
-long double maximum_data_rate_requirement = 10;
+long double minimum_data_rate_requirement = 10;
+long double maximum_data_rate_requirement = 30;
 
 
 // 0 = https://ieeexplore.ieee.org/document/9259258 paper propose,

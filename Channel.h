@@ -31,6 +31,8 @@ double Estimate_one_VLC_Channel_Gain(Ptr<Node> VLC_AP,Ptr<Node> UE);
 
 double Get_Incidence_Angle_AP_UE(Ptr<Node> AP,Ptr<Node> UE);
 
+double Estimate_IRS_channel_gain(Ptr<Node> AP,Ptr<Node> UE, Ptr<Node> IRS);
+
 double calculate_strong_user_data_rate(double channel_gain ,double strong_user_power);
 
 double calculate_weak_user_VLC_data_rate(long double channel_gain ,long double strong_user_power, long double weak_user_power);

@@ -30,7 +30,7 @@ std::vector<double> maximum_requirement_matrix(UE, 0);
 
 
 NodeContainer IRS_nodes;
-double IRS_location[2][3] = {{1, 0 , 1}, {4, 0 , 2}};
+double IRS_location[2][3] = {{1, 0 , 3}, {4, 0 , 4}};
 
 void initIRS(NodeContainer &IRS_nodes) {
     MobilityHelper IRS_Mobility;
@@ -144,6 +144,12 @@ void print_user_requirement() {
     }
 }
 
+void print_user_minimum_requirement() {
+    for(int i = 0;i < UE;i++) {
+        std::cout<<"user "<<i<<" minimum requirement:"<<" "<<maximum_requirement_matrix[i] * minimum_satisfaction_matrix[i]<<std::endl;
+    }
+}
+
 void printUE(std::vector<UE_node*> &UE_node_list)
 {
     std::cout<<std::endl;
@@ -184,18 +190,19 @@ void calculate_throughput() {
     calculate_Channel_Gain_Matrix();
     print_Channel_gain_matrix();
     generate_user_requirement();
-    print_user_requirement();
+    //print_user_minimum_requirement();
 
 
     init_ref1_algo();
     algorithm2();
 
-
+    calculate_data_rate_matrix();
+    print_user_minimum_requirement();
+    print_data_rate_matrix();
     /*
     ref1_algo();
     print_power_allocation_matrix();
-    calculate_data_rate_matrix();
-    print_data_rate_matrix();
+
     */
 
 

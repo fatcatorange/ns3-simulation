@@ -37,6 +37,10 @@ void print_power_allocation_matrix();
 double calculate_sum_rate();
 double throughput_write_file();
 void pair_fairness_write_file();
+void calculate_user_satisfaction();
+void print_user_satisfaction();
+void clear_power_allocation_matrix();
+void print_user_requirement();
 
 extern std::vector<AP_node*> AP_node_list;
 extern std::vector<UE_node*> UE_node_list;
@@ -51,6 +55,7 @@ extern std::vector<long double> power_allocation_matrix;
 extern std::vector<int> link_selection_matrix;
 extern std::vector<double> minimum_satisfaction_matrix;
 extern std::vector<double> maximum_requirement_matrix;
+extern std::vector<double> user_satisfaction_matrix;
 
 
 

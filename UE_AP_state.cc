@@ -27,6 +27,7 @@ std::vector<long double> power_allocation_matrix(UE, (total_power / UE)); // pow
 std::vector<int> link_selection_matrix(UE, 0); // 0 = direct link 1 = relay link
 std::vector<double> minimum_satisfaction_matrix(UE, 0);
 std::vector<double> maximum_requirement_matrix(UE, 0);
+std::vector<double> user_satisfaction_matrix(UE, 0);
 
 
 NodeContainer IRS_nodes;
@@ -124,7 +125,7 @@ void generate_user_requirement() {
     std::random_device rd;   // 真正的隨機種子
     std::mt19937 gen(rd());
     std::uniform_real_distribution<double> maximum_requirement_distribution(minimum_data_rate_requirement, maximum_data_rate_requirement);
-    std::uniform_real_distribution<double> minimum_satisfaction_distribution(minimum_satisfaction, 1.0);
+    std::uniform_real_distribution<double> minimum_satisfaction_distribution(minimum_satisfaction, 1);
 
     //generate maximum requirement
     for(int i = 0;i < UE;i++) {
@@ -159,7 +160,7 @@ void printUE(std::vector<UE_node*> &UE_node_list)
     std::cout<<Simulator::Now().GetSeconds()<<std::endl;
     for(int i=0;i<UE;i++)
     {
-        Ptr<MobilityModel> UE_mobility_model = UE_node_list[i]->node->GetObject<MobilityModel>();;
+        Ptr<MobilityModel> UE_mobility_model = UE_node_list[i]->node->GetObject<MobilityModel>();
         Vector pos = UE_mobility_model->GetPosition();
         std::cout<<" "<<"UE POSITION:"<<i<<" "<<pos.x<<" "<<pos.y<<" "<<pos.z<<std::endl;
     }
@@ -199,6 +200,8 @@ void calculate_throughput() {
     calculate_data_rate_matrix();
     print_user_minimum_requirement();
     print_data_rate_matrix();
+    print_power_allocation_matrix();
+
     /*
     ref1_algo();
     print_power_allocation_matrix();
@@ -248,7 +251,13 @@ void calculate_data_rate_matrix() {
     for(int i = 0;i < UE;i++) {
         for (int j = 0;j < UE;j++) {
             if (pairing_matrix[i][j] == 1) {
-                calculate_pair_data_rate(i, j);
+                // pairing with psuedo user
+                if (i == j) {
+                    data_rate_matrix[i][0] = calculate_strong_user_data_rate(Channel_gain_matrix[i][0] + IRS_channel_gain_matrix[i], power_allocation_matrix[i]);
+                }
+                else {
+                    calculate_pair_data_rate(i, j);
+                }
             }
         }
     }
@@ -256,27 +265,31 @@ void calculate_data_rate_matrix() {
 
 void calculate_pair_data_rate(int user1, int user2) {
     if (Channel_gain_matrix[user1][0] > Channel_gain_matrix[user2][0]) { //user 1 is strong user
+
         //std::cout<<"link"<<link_selection_matrix[user2]<<std::endl;
         data_rate_matrix[user1][0] = calculate_strong_user_data_rate(Channel_gain_matrix[user1][0] + IRS_channel_gain_matrix[user1], power_allocation_matrix[user1]);
         if (link_selection_matrix[user2] == 0) { //direct link
             data_rate_matrix[user2][0] = calculate_weak_user_VLC_data_rate(Channel_gain_matrix[user2][0] + IRS_channel_gain_matrix[user2], power_allocation_matrix[user1], power_allocation_matrix[user2]);
         }
         else { // relay link
+
             data_rate_matrix[user2][0] = std::min(calculate_RF_data_rate(Channel_gain_matrix[user1][0], UE_node_list[user1]->node, UE_node_list[user2]->node),
                                          calculate_weak_user_VLC_data_rate(Channel_gain_matrix[user1][0] + IRS_channel_gain_matrix[user1], power_allocation_matrix[user1], power_allocation_matrix[user2]));
         }
 
     }
     else { // user 2 is strong user
-        //std::cout<<"link"<<link_selection_matrix[user1]<<std::endl;
+
+        data_rate_matrix[user2][0] = calculate_strong_user_data_rate(Channel_gain_matrix[user2][0] + IRS_channel_gain_matrix[user2], power_allocation_matrix[user2]);
         if (link_selection_matrix[user1] == 0) {
             data_rate_matrix[user1][0] = calculate_weak_user_VLC_data_rate(Channel_gain_matrix[user1][0] + IRS_channel_gain_matrix[user1], power_allocation_matrix[user2], power_allocation_matrix[user1]);
         }
         else {
-             data_rate_matrix[user1][0] = std::min(calculate_RF_data_rate(Channel_gain_matrix[user2][0], UE_node_list[user2]->node, UE_node_list[user1]->node),
+           // std::cout<<"user:"<<user1<<" power: "<<power_allocation_matrix[user2]<<" channel gain:"<<Channel_gain_matrix[user2][0] + IRS_channel_gain_matrix[user2]<<std::endl;
+            data_rate_matrix[user1][0] = std::min(calculate_RF_data_rate(Channel_gain_matrix[user2][0], UE_node_list[user2]->node, UE_node_list[user1]->node),
                                          calculate_weak_user_VLC_data_rate(Channel_gain_matrix[user2][0] + IRS_channel_gain_matrix[user2], power_allocation_matrix[user2], power_allocation_matrix[user1]));
         }
-        data_rate_matrix[user2][0] = calculate_strong_user_data_rate(Channel_gain_matrix[user2][0] + IRS_channel_gain_matrix[user2], power_allocation_matrix[user2]);
+
     }
 }
 
@@ -298,6 +311,12 @@ void print_power_allocation_matrix() {
     std::cout<<std::left;
     for(int i = 0;i < UE;i++) {
         std::cout<<power_allocation_matrix[i]<<std::endl;
+    }
+}
+
+void clear_power_allocation_matrix() {
+    for(int i = 0;i < UE;i++) {
+        power_allocation_matrix[i] = 0;
     }
 }
 
@@ -371,7 +390,19 @@ double throughput_write_file() {
 }
 
 
+void calculate_user_satisfaction() {
+    calculate_data_rate_matrix();
+    for(int i = 0;i < UE;i++) {
+        user_satisfaction_matrix[i] = data_rate_matrix[i][0] / maximum_requirement_matrix[i];
+    }
+}
 
+void print_user_satisfaction() {
+    std::cout<<"user satisfaction:"<<std::endl;
+    for(int i = 0;i < UE;i++) {
+        std::cout<<user_satisfaction_matrix[i]<<std::endl;
+    }
+}
 
 void pair_fairness_write_file() {
     //std::cout<<"fairness:"<<calculate_pair_fairness()<<std::endl;

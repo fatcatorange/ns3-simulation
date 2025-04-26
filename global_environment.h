@@ -70,6 +70,7 @@ extern long double minimum_data_rate_requirement;
 extern long double maximum_data_rate_requirement;
 
 extern int power_allocation_formula;
+extern int exclude_user_method;
 extern int maximum_iteration;
 extern int minimum_iteration;
 extern int relay_user;

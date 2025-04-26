@@ -1,7 +1,7 @@
 #include "global_environment.h"
 
-int UE = 4;
-int pairing_count = UE / 2;
+int UE = 10;
+int pairing_count = (UE + 1) / 2;
 
 double room_size_x = 5;
 double room_size_y = 5;
@@ -49,7 +49,7 @@ long double minimum_satisfaction = 0.5;
 /*
 IRS related
 */
-int IRS_num = 100;
+int IRS_num = 10;
 int IRS_per_row = 30;
 double IRS_coefficient = 0.95;
 
@@ -70,6 +70,11 @@ long double maximum_data_rate_requirement = 30;
 // 2 = GRPA
 // 3 = use formula (22)
 int power_allocation_formula = 3;
+
+// 0 = random
+// 1 = worst channel gain
+// 2 = largest requirement user
+int exclude_user_method = 2;
 
 int maximum_iteration = 100;
 int relay_user = 1;

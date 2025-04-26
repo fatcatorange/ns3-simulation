@@ -28,6 +28,7 @@ std::vector<double> algo2_average_rate_matrix(UE, 0);
 std::unordered_set<int> excluded_user;
 const double INF = std::numeric_limits<double>::max();
 
+bool all_satisfied = false;
 int now_user = UE;
 int now_pair_count = UE / 2;
 
@@ -68,7 +69,6 @@ double correction_weak_user_power(long double strong_user_power, int weak_user, 
         }
 
     }
-    //std::cout<<"check weak:" <<calculate_weak_user_VLC_data_rate(weak_user_channel_gain, strong_user_power, weak_user_power)<<" "<<weak_user_minimum_rate <<std::endl;
 
     return weak_user_power;
 }
@@ -110,12 +110,17 @@ double correction_weak_user_RF_power(long double strong_user_power, int weak_use
         }
 
     }
-    //std::cout<<"check weak:" <<calculate_weak_user_VLC_data_rate(weak_user_channel_gain, strong_user_power, weak_user_power)<<" "<<weak_user_minimum_rate <<std::endl;
+
+    //std::cout<<"check weak:" <<calculate_weak_user_VLC_data_rate(strong_user_channel_gain, strong_user_power, weak_user_power)<<" "<<weak_user_minimum_rate <<std::endl;
+
 
     return weak_user_power;
 }
 
 double calculate_weak_user_require_power(long double strong_user_power, int weak_user) {
+    if (weak_user == -1) {
+        return 0;
+    }
     now_pair_count *= 20;
     long double weak_user_channel_gain = Channel_gain_matrix[weak_user][0] + IRS_channel_gain_matrix[weak_user];
     long double weak_user_minimum_rate = maximum_requirement_matrix[weak_user] * minimum_satisfaction_matrix[weak_user];
@@ -141,6 +146,9 @@ double calculate_weak_user_require_power(long double strong_user_power, int weak
 }
 
 double calculate_weak_user_RF_require_power(long double strong_user_power, int weak_user, int strong_user, int hybrid_user_count) {
+    if (weak_user == -1) {
+        return 0;
+    }
     long double strong_user_channel_gain = Channel_gain_matrix[strong_user][0] + IRS_channel_gain_matrix[strong_user];
     long double RF_upper_bound = calculate_RF_data_rate(strong_user_power, UE_node_list[strong_user]->node, UE_node_list[weak_user]->node);
 
@@ -189,7 +197,9 @@ double algo2_calculate_pair_cost(int weak_user, int strong_user) {
     double strong_user_power = calculate_strong_user_require_power(strong_user);
 
     //std::cout<<"check:"<<calculate_strong_user_data_rate(strong_user_channel_gain, strong_user_power)<<" "<<strong_user_minimum_rate<<std::endl;
-    double weak_user_power = calculate_weak_user_require_power(strong_user_power, weak_user);
+    double weak_user_power = link_selection_matrix[weak_user] == 0 ? calculate_weak_user_require_power(strong_user_power, strong_user) :
+            calculate_weak_user_RF_require_power(strong_user_power, weak_user, strong_user, relay_user);
+    //std::cout<<weak_user<<" "<<strong_user<<std::endl;
     return strong_user_power + weak_user_power;
 }
 
@@ -197,7 +207,6 @@ double algo2_calculate_pair_cost(int weak_user, int strong_user) {
 void algo2_construce_cost_matrix(vector<vector<double>> &cost_matrix) {
     double maxi = 0;
     for(int i = 0; i < now_user / 2;i++) {
-        relay_user = i;
         for (int j = 0;j < now_user / 2;j++) {
             cost_matrix[i][j] = algo2_calculate_pair_cost(algo2_sorted_ue_list[i].second, algo2_sorted_ue_list[(now_user / 2) + j].second); // weak, strong
             //std::cout<<cost_matrix[i][j]<<std::endl;
@@ -209,12 +218,11 @@ void algo2_construce_cost_matrix(vector<vector<double>> &cost_matrix) {
 }
 
 void algo2_print_cost_matrix(std::vector<std::vector<double>> &cost_matrix) {
-    std::cout << "cost_matrix" << std::endl;
+    //std::cout << "cost_matrix" << std::endl;
     for (int i = 0; i < cost_matrix.size(); i++) {
         for (int j = 0; j < cost_matrix[i].size(); j++) {
             //std::cout << std::setw(10) << std::fixed << std::setprecision(4) << cost_matrix[i][j] << " ";
         }
-        std::cout << std::endl;
     }
 }
 
@@ -224,9 +232,12 @@ void algo2_user_pairing() {
             pairing_matrix[i][j] = 0;
         }
     }
+    pairing_matrix.clear();
     pairing_matrix.resize(UE, std::vector<int>(UE, 0));
-    std::vector<std::vector<double>> cost_matrix(UE / 2, std::vector<double>(UE / 2, 0));
+    std::vector<std::vector<double>> cost_matrix(now_user / 2, std::vector<double>(now_user / 2, 0));
+    //std::cout<<"break"<<std::endl;
     algo2_construce_cost_matrix(cost_matrix);
+
     algo2_print_cost_matrix(cost_matrix);
     HungarianAlgorithm HungAlgo;
 
@@ -239,7 +250,11 @@ void algo2_user_pairing() {
         int wu = algo2_sorted_ue_list[i].second;
         int su = algo2_sorted_ue_list[algo2_match[i] + (now_user / 2)].second;
         //std::cout<<i<<" "<<Channel_gain_matrix[wu][0]<<" "<<algo2_match[i] + (now_user / 2)<<" "<<Channel_gain_matrix[su][0]<<std::endl;
-        pairing_matrix[wu][su] = 1;
+        if (wu != -1)
+            pairing_matrix[wu][su] = 1;
+        else {
+            pairing_matrix[su][su] = 1;
+        }
     }
 
 }
@@ -265,7 +280,7 @@ void algo2_link_selection() {
             //std::cout<<i<<std::endl;
             int wu = algo2_sorted_ue_list[i].second;
             int su = algo2_sorted_ue_list[algo2_match[i] + (now_user / 2)].second;
-            std::cout<<wu<<" "<<su<<std::endl;
+            //std::cout<<wu<<" "<<su<<std::endl;
             double saved_power = calculate_save_power(wu, su, hybrid_user);
             //std::cout<<"saved:"<<saved_power<<std::endl;
             pq.push({saved_power,i});
@@ -273,8 +288,8 @@ void algo2_link_selection() {
 
         for(int i = 0;i < hybrid_user;i++) {
             int user = pq.top().second;
-
-            algo2_link_selection_table[hybrid_user][user] = (pq.top().first > 0) ? 1 : -1;
+            if (user != -1)
+                algo2_link_selection_table[hybrid_user][user] = (pq.top().first > 0) ? 1 : -1;
             pq.pop();
         }
     }
@@ -312,24 +327,36 @@ void algo2_link_selection() {
     relay_user = maximum_saved_index;
 
     for (int i = 0;i < algo2_link_selection_table[maximum_saved_index].size();i++) {
-        if (algo2_link_selection_table[maximum_saved_index][i] == 1) {
+        if (algo2_link_selection_table[maximum_saved_index][i] == 1 && algo2_sorted_ue_list[i].second != -1) {
             link_selection_matrix[algo2_sorted_ue_list[i].second] = 1;
         }
     }
 
+    std::cout<<"link selection"<<std::endl;
     for(int i = 0;i < link_selection_matrix.size();i++) {
-        //cout<<link_selection_matrix[i]<<" ";
+        cout<<link_selection_matrix[i]<<" ";
     }
 
 }
 
 void algo2_list_user() {
     algo2_sorted_ue_list.clear();
+    now_user = 0;
     for(int i = 0;i < UE;i++) {
-        if (excluded_user.count(i) == 0)
+        if (excluded_user.count(i) == 0) {
             algo2_sorted_ue_list.push_back({Channel_gain_matrix[i][0], i});
+            now_user++;
+        }
+
+    }
+    //-1 is pseudo user
+    if (now_user % 2 == 1) {
+        now_user++;
+        algo2_sorted_ue_list.push_back({0, -1});
     }
     sort(algo2_sorted_ue_list.begin(), algo2_sorted_ue_list.end());
+    now_pair_count = (now_user) / 2;
+    pairing_count = now_pair_count;
 }
 
 //return: satisfied user pair count
@@ -342,12 +369,13 @@ int algo2_power_allocation(double &now_power, std::vector<std::tuple<double, int
         int su = algo2_sorted_ue_list[algo2_match[i] + (now_user / 2)].second;
         double strong_user_power = calculate_strong_user_require_power(su);
         //std::cout<<"strong user:"<<strong_user_power<<std::endl;
-        long double weak_user_power = link_selection_matrix[i] == 0 ? calculate_weak_user_require_power(strong_user_power, wu) :
+        long double weak_user_power = link_selection_matrix[wu] == 0 ? calculate_weak_user_require_power(strong_user_power, wu) :
             calculate_weak_user_RF_require_power(strong_user_power, wu, su, relay_user);
         long double require_power = strong_user_power + weak_user_power;
-        power_allocation_matrix[wu] = weak_user_power;
+        if (wu != -1)
+            power_allocation_matrix[wu] = weak_user_power;
         power_allocation_matrix[su] = strong_user_power;
-        std::cout<<require_power<<" "<<total_power<<std::endl;
+        //std::cout<<require_power<<" "<<total_power<<std::endl;
 
         sorted_user_pair.push_back(tuple<double, int, int>(require_power, wu, su));
         //std::get<0>(sorted_user_pair[i]);
@@ -366,7 +394,8 @@ int algo2_power_allocation(double &now_power, std::vector<std::tuple<double, int
             for(int j = i;j < sorted_user_pair.size();j++) {
                 int wu = std::get<1>(sorted_user_pair[j]);
                 int su = std::get<2>(sorted_user_pair[j]);
-                power_allocation_matrix[wu] = 0;
+                if (wu != -1)
+                    power_allocation_matrix[wu] = 0;
                 power_allocation_matrix[su] = 0;
                 //std::cout<<wu<<" "<<su<<std::endl;
             }
@@ -389,6 +418,14 @@ void IRS_assignment(double &now_power, int satisfied_pair, std::vector<std::tupl
         int su = std::get<2>(sorted_user_pair[now_pair]);
         //std::cout<<"now pair:"<<now_pair<<" wu:"<<wu<<" su:"<<su<<std::endl;
 
+        if (wu == -1) {
+            double strong_user_IRS_bonus = Estimate_IRS_channel_gain(AP_node_list[0]->node, UE_node_list[su]->node, IRS_nodes.Get(i));
+            double strong_user_power = calculate_strong_user_require_power(su);
+            now_power+=power_allocation_matrix[su];
+            power_allocation_matrix[su] = strong_user_power;
+            now_power-=strong_user_power;
+            continue;
+        }
         double weak_user_total_channel_gain = Channel_gain_matrix[wu][0] + IRS_channel_gain_matrix[wu];
         double strong_user_total_channel_gain = Channel_gain_matrix[su][0] + IRS_channel_gain_matrix[su];
 
@@ -413,7 +450,7 @@ void IRS_assignment(double &now_power, int satisfied_pair, std::vector<std::tupl
         IRS_channel_gain_matrix[su]-= strong_user_IRS_bonus;
 
         double origin_power = algo2_calculate_pair_cost(wu, su);
-        std::cout<<"origin:"<<origin_power<<" "<<new_weak_user_power<<" "<<new_strong_user_power<<std::endl;
+        //std::cout<<"origin:"<<origin_power<<" "<<new_weak_user_power<<" "<<new_strong_user_power<<std::endl;
 
         //order will not rearrange
         if (weak_user_total_channel_gain + weak_user_IRS_bonus < strong_user_total_channel_gain && new_weak_user_power < new_strong_user_power) {
@@ -425,7 +462,7 @@ void IRS_assignment(double &now_power, int satisfied_pair, std::vector<std::tupl
             IRS_channel_gain_matrix[su]+= strong_user_IRS_bonus;
         }
         double strong_user_power = calculate_strong_user_require_power(su);
-        double weak_user_power = link_selection_matrix[i] == 0 ? calculate_weak_user_require_power(strong_user_power, wu) :
+        double weak_user_power = link_selection_matrix[wu] == 0 ? calculate_weak_user_require_power(strong_user_power, wu) :
             calculate_weak_user_RF_require_power(strong_user_power, wu, su, relay_user);
         if (strong_user_power < 0 || weak_user_power < 0) {
             continue;
@@ -436,9 +473,14 @@ void IRS_assignment(double &now_power, int satisfied_pair, std::vector<std::tupl
 
 
         if (now_power > strong_user_power + weak_user_power) {
-            if (now_pair == satisfied_pair - 1 && now_pair != now_pair_count - 1) {
-                std::cout<<"pair+!"<<std::endl;
-                satisfied_pair++;
+            if (now_pair == satisfied_pair - 1) {
+                if (now_pair != now_pair_count - 1) {
+                    std::cout<<"pair+!"<<std::endl;
+                    satisfied_pair++;
+                }
+                else {
+                    all_satisfied = true;
+                }
             }
             now_power -= strong_user_power + weak_user_power;
             power_allocation_matrix[wu] = weak_user_power;
@@ -456,29 +498,189 @@ void IRS_assignment(double &now_power, int satisfied_pair, std::vector<std::tupl
                 now_power=0;
             }
         }
-        std::cout<<now_power<<" "<<strong_user_power<<" "<<weak_user_power<<std::endl;
+        //std::cout<<now_power<<" "<<strong_user_power<<" "<<weak_user_power<<std::endl;
         //std::cout<<"now power:"<<now_power<<std::endl;
     }
 
 }
 
+void random_exclude_user() {
+    while(1) {
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_int_distribution<> distrib(0, algo2_sorted_ue_list.size() - 1);
+        int random_number = distrib(gen);
+        int delete_user = algo2_sorted_ue_list[random_number].second;
+        if (excluded_user.count(delete_user) == 0) {
+            excluded_user.insert(delete_user);
+            std::cout<<"delete user:"<<delete_user<<std::endl;
+            break;
+        }
+    }
+}
+
+void exclude_largest_requirement_user() {
+    double max_power = 0;
+    int max_power_user = -1;
+    for(int i = 0;i < algo2_match.size();i++) {
+        int wu = algo2_sorted_ue_list[i].second;
+        int su = algo2_sorted_ue_list[algo2_match[i] + (now_user / 2)].second;
+        double strong_user_power = calculate_strong_user_require_power(su);
+        //std::cout<<"strong user:"<<strong_user_power<<std::endl;
+        long double weak_user_power = link_selection_matrix[i] == 0 ? calculate_weak_user_require_power(strong_user_power, wu) :
+            calculate_weak_user_RF_require_power(strong_user_power, wu, su, relay_user);
+
+        if (strong_user_power > max_power) {
+            max_power = strong_user_power;
+            max_power_user = su;
+        }
+        if (weak_user_power > max_power) {
+            max_power = weak_user_power;
+            max_power_user = wu;
+        }
+        //std::get<0>(sorted_user_pair[i]);
+
+    }
+
+    excluded_user.insert(max_power_user);
+    std::cout<<"delete user:"<<max_power_user<<std::endl;
+}
+
+void exclude_user() {
+    //std::cout<<"delete user!"<<std::endl;
+    //random
+    if (exclude_user_method == 0) {
+        random_exclude_user();
+    }
+    else if (exclude_user_method == 1) { // worst channel gain
+        int delete_user = algo2_sorted_ue_list[0].second;
+        excluded_user.insert(delete_user);
+        std::cout<<"delete user:"<<delete_user<<std::endl;
+    }
+    else { //largest requirement user
+        exclude_largest_requirement_user();
+    }
+}
+
+void binary_search_residual_power_allocation(int satisfied_user, double residual_power, std::vector<std::tuple<double, int, int>> &sorted_user_pair) {
+    double accuracy = 1e-10;
+
+    calculate_user_satisfaction();
+
+    //print_user_satisfaction();
+    std::vector<double> residual_power_matrix(UE, 0);
+    double left = 0;
+    double right = 1;
+    for(int i = 0;i < satisfied_user;i++) {
+        int wu = std::get<1>(sorted_user_pair[i]);
+        int su = std::get<2>(sorted_user_pair[i]);
+        right = std::min(right, 1.0 - user_satisfaction_matrix[su]);
+        if (wu != -1) {
+            right = std::min(right, 1.0 - user_satisfaction_matrix[wu]);
+        }
+    }
+
+    while(right - left > accuracy) {
+        double mid = (right + left) / 2.0;
+        //std::cout<<"mid:"<<mid<<std::endl;
+        double sum_power = 0;
+        std::vector<double> tmp_power_matrix(UE, 0);
+        for(int i = 0;i < satisfied_user;i++) {
+            int wu = std::get<1>(sorted_user_pair[i]);
+            int su = std::get<2>(sorted_user_pair[i]);
+
+            minimum_satisfaction_matrix[su]+=mid;
+            double strong_user_require_power = calculate_strong_user_require_power(su);
+            strong_user_require_power -= power_allocation_matrix[su];
+
+            double weak_user_require_power = 0;
+            minimum_satisfaction_matrix[su]-=mid;
+
+            tmp_power_matrix[su] = strong_user_require_power;
+            //std::cout<<"wu:"<<wu<<"su:"<<su<<std::endl;
+            if (wu != -1) {
+                minimum_satisfaction_matrix[wu]+=mid;
+                double strong_user_power = strong_user_require_power + power_allocation_matrix[su];
+                weak_user_require_power = link_selection_matrix[wu] == 0 ? calculate_weak_user_require_power(strong_user_power, wu) :
+                                calculate_weak_user_RF_require_power(strong_user_power, wu, su, relay_user);
+                weak_user_require_power -= power_allocation_matrix[wu];
+                minimum_satisfaction_matrix[wu]-=mid;
+                tmp_power_matrix[wu] = weak_user_require_power;
+            }
+
+            sum_power+= (strong_user_require_power + weak_user_require_power);
+
+        }
+        if (sum_power > residual_power) {
+            right = mid;
+        }
+        else {
+            residual_power_matrix = tmp_power_matrix;
+            left = mid;
+        }
+    }
+
+    std::cout<<"right:"<<right<<std::endl;
+    for(int i = 0;i < residual_power_matrix.size();i++) {
+        power_allocation_matrix[i] += residual_power_matrix[i];
+    }
+}
+
+void average_residual_power_allocation(int satisfied_user, double residual_power, std::vector<std::tuple<double, int, int>> &sorted_user_pair) {
+
+    for(int i = 0;i < satisfied_user;i++) {
+        int wu = std::get<1>(sorted_user_pair[i]);
+        int su = std::get<2>(sorted_user_pair[i]);
+        power_allocation_matrix[wu]+=(residual_power / (2 * satisfied_user));
+        power_allocation_matrix[su]+=(residual_power / (2 * satisfied_user));
+    }
+}
+
+
+
 void algorithm2() {
-    algo2_list_user();
-    algo2_user_pairing();
-    algo2_link_selection();
+    while(1) {
+        clear_power_allocation_matrix();
+        all_satisfied = false;
+        algo2_list_user();
+        std::cout<<"IRS channel gain"<<std::endl;
+        for(int i = 0;i < IRS_channel_gain_matrix.size();i++) {
+            IRS_channel_gain_matrix[i] = 0;
+            link_selection_matrix[i] = 0;
+        }
+        algo2_user_pairing();
+        //
+        algo2_link_selection();
 
-    for(int i = 0;i < link_selection_matrix.size();i++) {
-        std::cout<<"!"<<link_selection_matrix[i]<<" ";
+
+
+        double now_power = total_power;
+        std::vector<std::tuple<double, int, int>> sorted_user_pair;
+        int satisfied_pair = algo2_power_allocation(now_power, sorted_user_pair);
+
+        print_user_requirement();
+        calculate_user_satisfaction();
+        print_user_satisfaction();
+
+        IRS_assignment(now_power,satisfied_pair, sorted_user_pair);
+
+        std::cout<<"all satisfied:" <<all_satisfied<<std::endl;
+        std::cout<<"residual power: "<<now_power<<std::endl;
+
+
+        //average_residual_power_allocation(satisfied_pair, now_power, sorted_user_pair);
+
+        if (all_satisfied == false) {
+            exclude_user();
+        }
+        else {
+            binary_search_residual_power_allocation(satisfied_pair, now_power, sorted_user_pair);
+            calculate_user_satisfaction();
+            print_user_satisfaction();
+
+            break;
+        }
+
     }
-    std::cout<<std::endl;
-
-    double now_power = total_power;
-    std::vector<std::tuple<double, int, int>> sorted_user_pair;
-    int satisfied_pair = algo2_power_allocation(now_power, sorted_user_pair);
-    std::cout<<"satisfied user: "<<satisfied_pair<<std::endl;
-    IRS_assignment(now_power,satisfied_pair, sorted_user_pair);
-    for(int i = 0;i < power_allocation_matrix.size();i++) {
-        std::cout<<power_allocation_matrix[i]<<std::endl;
-    }
-
+    std::cout<<"now user:"<<now_user<<std::endl;
 }

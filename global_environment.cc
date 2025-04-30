@@ -1,6 +1,6 @@
 #include "global_environment.h"
 
-int UE = 10;
+int UE = 8;
 int pairing_count = (UE + 1) / 2;
 
 double room_size_x = 5;
@@ -43,14 +43,14 @@ long double angle_of_LOS_arrival = 45;
 long double fill_factor = 0.75;
 long double thermal_voltage = 0.025;
 
-long double minimum_satisfaction = 0.5;
+long double minimum_satisfaction = 0.2;
 
 
 /*
 IRS related
 */
-int IRS_num = 10;
-int IRS_per_row = 30;
+int IRS_num = 300;
+int IRS_per_row = 40;
 double IRS_coefficient = 0.95;
 
 /*

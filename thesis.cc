@@ -108,6 +108,7 @@ int main(int argc, char *argv[]) {
 
 	//parameters:
 
+
 	Simulator::Schedule(Seconds(0.0), &basic_init);
 	Simulator::Schedule(Seconds(0.0), &calculate_throughput);
 	//Simulator::Schedule(Seconds(0.0), &ref1_algo);
@@ -118,6 +119,8 @@ int main(int argc, char *argv[]) {
     throughput_write_file();
 
     pair_fairness_write_file();
+
+
 
 }
 

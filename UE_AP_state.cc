@@ -198,7 +198,9 @@ void calculate_throughput() {
     algorithm2();
 
     calculate_data_rate_matrix();
-    print_user_minimum_requirement();
+    print_user_requirement();
+    calculate_user_satisfaction();
+    print_user_satisfaction();
     print_data_rate_matrix();
     print_power_allocation_matrix();
 

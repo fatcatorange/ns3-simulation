@@ -25,6 +25,7 @@ void basic_init();
 void initVLC_AP(NodeContainer &VLC_AP_nodes, std::vector<AP_node*> &AP_list);
 void initUE(NodeContainer &UE_nodes,std::vector<UE_node*> &UE_node_list);
 void printUE(std::vector<UE_node*> &UE_node_list);
+extern int iteration_count;
 
 
 void calculate_throughput();

@@ -122,9 +122,9 @@ are not satisfied. Therefore, in such cases, I use Case 1 to allocate power.
 
     double term2 = 1 / psi_j;
     double pair_total_power = std::max(0.0, term1 - term2);
-    std::cout<<"pair power:"<<pair_total_power<<std::endl;
+    //std::cout<<"pair power:"<<pair_total_power<<std::endl;
 
-    std::cout<<"psi: "<<weight_matrix[weak_user] <<" "<< weight_matrix[strong_user] <<" "<< (psi_j / psi_i)<<std::endl;
+    //std::cout<<"psi: "<<weight_matrix[weak_user] <<" "<< weight_matrix[strong_user] <<" "<< (psi_j / psi_i)<<std::endl;
     if ( link_selection_matrix[weak_user] == 0 && power_allocation_formula != 3) { //case 2, formula (26)
         if (power_allocation_formula == 0) {
             double epsilon = 1e-15;
@@ -171,7 +171,7 @@ are not satisfied. Therefore, in such cases, I use Case 1 to allocate power.
                 power_allocation_matrix[weak_user] = pair_total_power - Csk;
             }
 
-            std::cout<<"power:"<<power_allocation_matrix[strong_user]<<" "<<power_allocation_matrix[weak_user]<<std::endl;
+            //std::cout<<"power:"<<power_allocation_matrix[strong_user]<<" "<<power_allocation_matrix[weak_user]<<std::endl;
         }
         else if(power_allocation_formula == 2){
             double strong_user_power_ratio = 1;
@@ -372,7 +372,7 @@ void ref1_link_selection(std::vector<std::pair<int, int>> &tmp_pairing) {
 
     for (int i = 0;i < link_selection_table[maximum_index].size();i++) {
         if (link_selection_table[maximum_index][i] == 1) {
-            std::cout<<tmp_pairing[i].second<<std::endl;
+            //std::cout<<tmp_pairing[i].second<<std::endl;
             link_selection_matrix[tmp_pairing[i].second] = 1;
         }
     }
@@ -389,7 +389,7 @@ void update_weight(std::vector<std::pair<int, int>> &tmp_pairing, int round) {
         int weak_user = tmp_pairing[i].second;
         weight_matrix[weak_user] = 1/(average_rate_matrix[weak_user] / round);
         weight_matrix[strong_user] = 1/ ((average_rate_matrix[strong_user] > average_rate_matrix[weak_user] ? average_rate_matrix[strong_user] : average_rate_matrix[weak_user] * 1.01) / round);
-        std::cout<<"weighted:"<<weight_matrix[weak_user]<<" "<<weight_matrix[strong_user]<<std::endl;
+        //std::cout<<"weighted:"<<weight_matrix[weak_user]<<" "<<weight_matrix[strong_user]<<std::endl;
     }
 
 }
@@ -405,7 +405,7 @@ double calculate_weighted_sum_rate() {
     for(int i = 0;i < data_rate_matrix.size();i++) {
         for(int j = 0;j <data_rate_matrix[i].size();j++) {
             sum_rate+=weight_matrix[i] * data_rate_matrix[i][j];
-            std::cout<<"weighted:"<<weight_matrix[i]<<std::endl;
+            //std::cout<<"weighted:"<<weight_matrix[i]<<std::endl;
         }
 
     }
@@ -433,16 +433,22 @@ void ref1_algo() {
     double now_rate = 0;
     init_weight();
     while(round <= maximum_iteration) {
+        iteration_count++;
         std::vector<std::pair<int, int>> tmp_pairing; // [strong user, weak user]
         check_pairing(tmp_pairing);
         update_weight(tmp_pairing, round);
         //print_data_rate_matrix();
         ref1_power_allocation(tmp_pairing);
+
         ref1_user_pairing();
+
         tmp_pairing.resize(0);
         check_pairing(tmp_pairing);
+
         clear_link_selection_matrix();
+        //std::cout<<"block"<<std::endl;
         ref1_link_selection(tmp_pairing);
+
 
         calculate_data_rate_matrix();
         print_pair_data_rate(tmp_pairing);

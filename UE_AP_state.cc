@@ -19,6 +19,7 @@
 std::vector<AP_node*> AP_node_list;
 std::vector<UE_node*> UE_node_list;
 
+int iteration_count = 0;
 std::vector<std::vector<double>> Channel_gain_matrix(UE,std::vector<double>(VLC_AP));
 std::vector<double> IRS_channel_gain_matrix(UE, 0);
 std::vector<std::vector<int>> pairing_matrix(UE, std::vector<int>(UE)); // if i, j == 1 => i and j are pairing
@@ -28,6 +29,7 @@ std::vector<int> link_selection_matrix(UE, 0); // 0 = direct link 1 = relay link
 std::vector<double> minimum_satisfaction_matrix(UE, 0);
 std::vector<double> maximum_requirement_matrix(UE, 0);
 std::vector<double> user_satisfaction_matrix(UE, 0);
+
 
 
 NodeContainer IRS_nodes;
@@ -181,28 +183,36 @@ void basic_init() {
     IRS_nodes.Create(IRS_num);
     initIRS(IRS_nodes);
 
-    printIRS();
+    //printIRS();
 
-    printUE(UE_node_list);
+    //printUE(UE_node_list);
 
 }
 
 void calculate_throughput() {
     calculate_Channel_Gain_Matrix();
-    print_Channel_gain_matrix();
+    //print_Channel_gain_matrix();
     generate_user_requirement();
     //print_user_minimum_requirement();
 
 
-    init_ref1_algo();
-    algorithm2();
+    //init_ref1_algo();
+    ref1_algo();
+    //algorithm2();
 
     calculate_data_rate_matrix();
-    print_user_requirement();
+    //print_user_requirement();
     calculate_user_satisfaction();
     print_user_satisfaction();
     print_data_rate_matrix();
     print_power_allocation_matrix();
+
+
+    /*
+
+    print_data_rate_matrix();
+    print_power_allocation_matrix();
+    */
 
     /*
     ref1_algo();
@@ -374,6 +384,53 @@ double calculate_pair_fairness() {
     return top / down;
 }
 
+double write_user_satisfaction() {
+    calculate_data_rate_matrix();
+    double avg_user_satisfaction = 0.0;
+    for(int i = 0;i < UE;i++) {
+
+        avg_user_satisfaction += user_satisfaction_matrix[i];
+    }
+
+    return avg_user_satisfaction / UE;
+}
+
+int write_satisfied_user() {
+    int satisfied_user = 0;
+    for(int i = 0;i < UE;i++) {
+        if (user_satisfaction_matrix[i] > minimum_satisfaction_matrix[i] * 0.99) {
+            satisfied_user++;
+        }
+    }
+
+    return satisfied_user;
+}
+
+double write_energy_effiency() {
+    double energy_effiency = 0.0;
+    for(int i = 0;i < UE;i++) {
+        energy_effiency += data_rate_matrix[i][0];
+    }
+
+    return energy_effiency / total_power;
+}
+
+double write_satisfaction_fairness() {
+    double jann_fairness = 0;
+    double top = 0;
+    double down = 0;
+    for(int i = 0;i < UE;i++) {
+        double now_user_satisfaction = user_satisfaction_matrix[i];
+        top+=now_user_satisfaction;
+        down+=pow(now_user_satisfaction, 2);
+    }
+
+    top = pow(top, 2);
+    down = UE * down;
+
+    return top / down;
+}
+
 double throughput_write_file() {
     std::fstream outFile;
     outFile.open("/home/jimmy/repos/ns-3-allinone/ns-3.25/scratch/thesis/output.csv",std::ios::out|std::ios::app);
@@ -384,7 +441,7 @@ double throughput_write_file() {
     else
     {
         //outFile<<std::endl;
-        outFile<<calculate_sum_rate()<<','<<calculate_pair_fairness()<<','<<calculate_fairness()<<std::endl;//throughput
+        outFile<<calculate_sum_rate()<<','<<write_user_satisfaction()<<','<<write_satisfied_user()<<','<<write_energy_effiency()<<','<<write_satisfaction_fairness()<<','<<iteration_count<<std::endl;//throughput
         //std::cout<<calculate_sum_rate()<<','<<calculate_pair_fairness()<<','<<calculate_fairness()<<std::endl;
         //outFile<<std::endl;
     }
@@ -395,12 +452,12 @@ double throughput_write_file() {
 void calculate_user_satisfaction() {
     calculate_data_rate_matrix();
     for(int i = 0;i < UE;i++) {
-        user_satisfaction_matrix[i] = data_rate_matrix[i][0] / maximum_requirement_matrix[i];
+        user_satisfaction_matrix[i] = std::min(data_rate_matrix[i][0] / maximum_requirement_matrix[i], 1.0);
     }
 }
 
 void print_user_satisfaction() {
-    std::cout<<"user satisfaction:"<<std::endl;
+    //std::cout<<"user satisfaction:"<<std::endl;
     for(int i = 0;i < UE;i++) {
         std::cout<<user_satisfaction_matrix[i]<<std::endl;
     }
@@ -408,4 +465,8 @@ void print_user_satisfaction() {
 
 void pair_fairness_write_file() {
     //std::cout<<"fairness:"<<calculate_pair_fairness()<<std::endl;
+}
+
+void reset_all_parameters() {
+
 }

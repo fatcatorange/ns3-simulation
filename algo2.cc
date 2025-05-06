@@ -321,9 +321,6 @@ void algo2_user_pairing() {
 
     HungAlgo.Solve(cost_matrix, algo2_match);
 
-    for (unsigned int x = 0; x < cost_matrix.size(); x++)
-		std::cout << x << "," << algo2_match[x] << "\t";
-    std::cout<<std::endl;
     for (int i = 0;i < algo2_match.size();i++) {
         int wu = algo2_sorted_ue_list[i].second;
         int su = algo2_sorted_ue_list[algo2_match[i] + (now_user / 2)].second;
@@ -410,10 +407,6 @@ void algo2_link_selection() {
         }
     }
 
-    std::cout<<"link selection"<<std::endl;
-    for(int i = 0;i < link_selection_matrix.size();i++) {
-        cout<<link_selection_matrix[i]<<" ";
-    }
 
 }
 
@@ -423,7 +416,7 @@ void algo2_list_user() {
     for(int i = 0;i < UE;i++) {
         if (excluded_user.count(i) == 0) {
             algo2_sorted_ue_list.push_back({Channel_gain_matrix[i][0], i});
-            std::cout<<"add:"<<i<<std::endl;
+            //std::cout<<"add:"<<i<<std::endl;
             now_user++;
         }
 
@@ -439,7 +432,7 @@ void algo2_list_user() {
     sort(algo2_sorted_ue_list.begin(), algo2_sorted_ue_list.end());
     now_pair_count = (now_user) / 2;
     pairing_count = now_pair_count;
-    std::cout<<"now user:"<<now_user<<std::endl;
+    //std::cout<<"now user:"<<now_user<<std::endl;
 }
 
 //return: satisfied user pair count
@@ -641,7 +634,7 @@ void random_exclude_user() {
         int delete_user = algo2_sorted_ue_list[random_number].second;
         if (excluded_user.count(delete_user) == 0) {
             excluded_user.insert(delete_user);
-            std::cout<<"delete user:"<<delete_user<<std::endl;
+            //std::cout<<"delete user:"<<delete_user<<std::endl;
             break;
         }
     }
@@ -671,7 +664,7 @@ void exclude_largest_requirement_user() {
     }
 
     excluded_user.insert(max_power_user);
-    std::cout<<"delete user:"<<max_power_user<<std::endl;
+    //std::cout<<"delete user:"<<max_power_user<<std::endl;
 }
 
 void exclude_user() {
@@ -683,7 +676,7 @@ void exclude_user() {
     else if (exclude_user_method == 1) { // worst channel gain
         int delete_user = algo2_sorted_ue_list[0].second;
         excluded_user.insert(delete_user);
-        std::cout<<"delete user:"<<delete_user<<std::endl;
+        //std::cout<<"delete user:"<<delete_user<<std::endl;
     }
     else { //largest requirement user
         exclude_largest_requirement_user();
@@ -817,6 +810,7 @@ void check_all_satisfied() {
 
 void algorithm2() {
     while(1) {
+        iteration_count++;
         clear_power_allocation_matrix();
         all_satisfied = false;
         algo2_list_user();
@@ -834,7 +828,7 @@ void algorithm2() {
         algo2_user_pairing();
         //std::cout<<"!"<<std::endl;
         //
-        //algo2_link_selection();
+        algo2_link_selection();
 
 
 
@@ -844,20 +838,20 @@ void algorithm2() {
 
         calculate_user_satisfaction();
 
-        std::cout<<"IRS assignment start"<<std::endl;
-        print_user_requirement();
+        //std::cout<<"IRS assignment start"<<std::endl;
+
+        IRS_assignment(now_power,satisfied_pair, sorted_user_pair);
+
+        //std::cout<<"IRS assignment over"<<std::endl;
+        //print_user_requirement();
         calculate_user_satisfaction();
-        print_user_satisfaction();
+        //print_user_satisfaction();
 
-        //IRS_assignment(now_power,satisfied_pair, sorted_user_pair);
-
-        std::cout<<"IRS assignment over"<<std::endl;
-        print_user_requirement();
-        calculate_user_satisfaction();
-        print_user_satisfaction();
-
+        /*
         std::cout<<"all satisfied:" <<all_satisfied<<std::endl;
         std::cout<<"residual power: "<<now_power<<std::endl;
+        */
+
 
 
         //average_residual_power_allocation(satisfied_pair, now_power, sorted_user_pair);
@@ -869,9 +863,9 @@ void algorithm2() {
             //check_all_satisfied();
             bool all_max_satisfied = binary_search_residual_power_allocation(satisfied_pair, now_power, sorted_user_pair);
             //std::cout<<"unused power:"<<now_power<<std::endl;
-            weak_user_average_residual_power_allocation(satisfied_pair, now_power, sorted_user_pair);
+            if (now_power > 0.0)
+                weak_user_average_residual_power_allocation(satisfied_pair, now_power, sorted_user_pair);
             break;
-
 
         }
 
